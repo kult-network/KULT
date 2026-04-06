@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Ticket, User, Zap, Plus, X, ShieldCheck,
   Clock, Mic2, BookOpen, Music, Layers, Info, Mail, Key, Image as ImageIcon, Calendar, ChevronRight, Loader2, CheckCircle2
@@ -80,7 +80,7 @@ const HubDetails = ({ user, role }) => {
         setRegData({ Name: '', StudentID: '', Stream: '', Year: '' });
         setScreenshot(null);
       }, 3000);
-    } catch (err) { alert("Registration failed. Network congestion."); } 
+    } catch { alert("Registration failed. Network congestion."); } 
     finally { setSubmitting(false); }
   };
   const handleScreenshot = (e) => {
@@ -99,7 +99,7 @@ const HubDetails = ({ user, role }) => {
           <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tighter">{slot.activity}</span>
         </div>
       ));
-    } catch (e) { return null; }
+    } catch { return null; }
   };
   if (loading) return <div className="h-screen flex items-center justify-center bg-white font-sporty font-black text-gray-200 text-[8vw] animate-pulse uppercase">Accessing Node...</div>;
   return (

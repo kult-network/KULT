@@ -91,7 +91,7 @@ app.post('/api/events', async (req, res) => {
             "Description": Description,
             "Category": Category,
             "Speaker": Speaker,
-            "Poster": Poster,
+            // "Poster": Poster, // Temporarily removed due to attachment handling
             "Itinerary": Itinerary,
             "start_time": start_time,
             "end_time": end_time,
@@ -205,6 +205,36 @@ app.post('/api/bookings', async (req, res) => {
         await logActivity(`🎟️ REGISTRATION: ${req.body.Name?.toUpperCase()} -> ${req.body.Event_Name?.toUpperCase()}`, "BOOKING");
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "Booking fail" }); }
+});
+
+app.get('/api/bookings/event/:eventId', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_BOOKINGS}`, {
+            headers: HEADERS,
+            params: { limit: 100, sort: '-Id' }
+        });
+        const allBookings = response.data.list || response.data || [];
+        const eventBookings = allBookings.filter(b => String(b.Event_ID) === String(req.params.eventId));
+        res.json(eventBookings);
+    } catch (err) {
+        console.error("Failed to fetch event bookings", err.response?.data || err.message);
+        res.status(500).json({ error: "Failed to fetch event bookings" });
+    }
+});
+
+app.get('/api/organizer-events/:email', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
+            headers: HEADERS,
+            params: { limit: 100, sort: '-Id' }
+        });
+        const allEvents = response.data.list || response.data || [];
+        const myEvents = allEvents.filter(e => e.Organizer_Email === req.params.email);
+        res.json(myEvents);
+    } catch (err) {
+        console.error("Failed to fetch organizer events", err.response?.data || err.message);
+        res.status(500).json({ error: "Failed to fetch organizer events" });
+    }
 });
 
 app.get('/api/activity', async (req, res) => {

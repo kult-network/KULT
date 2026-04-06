@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
-import { motion } from 'framer-motion';
 import {
   Globe, Zap, ArrowRight, Activity,
   MessageSquare, TrendingUp
@@ -24,19 +23,17 @@ const HUB_COLORS = [
   { bg: "bg-emerald-500", text: "text-emerald-500", light: "bg-emerald-50", border: "border-emerald-100", shadow: "shadow-emerald-200" },
 ];
 
-const HubsList = ({ user, role }) => {
+const HubsList = ({ user }) => {
   const [hubs, setHubs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [systemMsg, setSystemMsg] = useState("");
+  const [systemMsg] = useState(() => RANDOM_TAGLINES[Math.floor(Math.random() * RANDOM_TAGLINES.length)]);
   const [activities, setActivities] = useState([]);
   const [activePoll, setActivePoll] = useState(null);
   const [voted, setVoted] = useState(false);
 
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
 
   useEffect(() => {
-    setSystemMsg(RANDOM_TAGLINES[Math.floor(Math.random() * RANDOM_TAGLINES.length)]);
-
     const fetchData = async () => {
       try {
         const resHubs = await axios.get(`${API_BASE_URL}/api/hubs`);
@@ -44,9 +41,9 @@ const HubsList = ({ user, role }) => {
         const parsedHubs = Array.isArray(data) ? data : [];
         setHubs(parsedHubs);
         console.log(`🔒 GATEWAY OVERRIDE: Forcing hubs visible for everyone. Hubs loaded: ${parsedHubs.length}`);
-      } catch (err) {
+      } catch {
         setHubs([]);
-        console.error("Failed to fetch hubs:", err);
+        console.error("Failed to fetch hubs");
       }
 
       // Add a tiny delay to respect rate limits
@@ -55,7 +52,7 @@ const HubsList = ({ user, role }) => {
         const resAct = await axios.get(`${API_BASE_URL}/api/activity`);
         const data = resAct.data;
         setActivities(Array.isArray(data) ? data : data.list || []);
-      } catch (err) {
+      } catch {
         console.error("Activity fetch failed");
       }
 
@@ -67,7 +64,7 @@ const HubsList = ({ user, role }) => {
           const pollId = resPoll.data.id || resPoll.data.Id;
           if (localStorage.getItem(`voted_${pollId}`)) setVoted(true);
         }
-      } catch (err) {
+      } catch {
         console.error("Poll fetch failed");
       }
 

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Key, Copy, Check, Globe, Plus, ArrowLeft, Loader2, ShieldAlert, MessageSquare, BarChart3 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import Toast from '../components/Toast'; 
 const SupervisorPanel = () => {
   const [tokens, setTokens] = useState([]);
@@ -35,7 +35,7 @@ const SupervisorPanel = () => {
         fetchTokens();
         showToast("ACCESS KEY ENCRYPTED 🔑", "success");
       }
-    } catch (err) { showToast("ENCRYPTION FAILED", "error"); }
+    } catch { showToast("ENCRYPTION FAILED", "error"); }
     finally { setLoading(false); }
   };
   const handleAddHub = async (e) => {
@@ -45,7 +45,7 @@ const SupervisorPanel = () => {
       await axios.post(`${API_BASE_URL}/api/hubs`, newHub);
       showToast(`HUB ONLINE: ${newHub.Name.toUpperCase()}`, "success");
       setNewHub({ Name: '', Location: '', Tagline: '' });
-    } catch (err) { showToast("HUB DEPLOYMENT FAILED", "error"); }
+    } catch { showToast("HUB DEPLOYMENT FAILED", "error"); }
     finally { setLoading(false); }
   };
   const handleCreatePoll = async (e) => {
@@ -56,7 +56,7 @@ const SupervisorPanel = () => {
       await axios.post(`${API_BASE_URL}/api/polls`, { ...pollData, VotesA: 0, VotesB: 0 });
       showToast("VIBE CHECK BROADCASTED! 🛰️", "success");
       setPollData({ Question: '', OptionA: '', OptionB: '' });
-    } catch (err) { showToast("POLL BROADCAST FAILED", "error"); }
+    } catch { showToast("POLL BROADCAST FAILED", "error"); }
     finally { setLoading(false); }
   };
   const copyToClipboard = (txt) => {

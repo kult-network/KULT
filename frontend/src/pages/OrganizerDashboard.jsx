@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, X, Eye, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import Toast from '../components/Toast';
 const OrganizerDashboard = () => {
@@ -12,21 +11,23 @@ const OrganizerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
-  const fetchBookings = async () => {
+
+  const fetchBookings = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/bookings/event/${eventId}`);
       const data = Array.isArray(res.data) ? res.data : res.data.list || [];
       setBookings(data);
-    } catch (err) {
-      console.error("❌ Fetch Error:", err);
+    } catch (_err) {
+      console.error("❌ Fetch Error:", _err);
       setToast({ show: true, msg: "Failed to load intel", type: 'error' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId]);
+
   useEffect(() => {
     if (eventId) fetchBookings();
-  }, [eventId]);
+  }, [eventId, fetchBookings]);
   const handleStatusUpdate = async (id, newStatus) => {
     if (!id) {
       console.error("❌ Error: Booking ID is missing!");

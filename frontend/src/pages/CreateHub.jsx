@@ -14,7 +14,7 @@ const CreateHub = () => {
       await axios.post(`${API_BASE_URL}/api/hubs`, formData);
       alert("NEW HUB ACTIVATED! 🌍");
       navigate('/');
-    } catch (err) {
+    } catch {
       alert("Error creating hub");
     } finally { setLoading(false); }
   };
