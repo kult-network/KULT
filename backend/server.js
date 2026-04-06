@@ -75,6 +75,17 @@ app.post('/api/events', async (req, res) => {
             UPI_ID,
             DL_Protocol
         } = req.body;
+
+        // NocoDB enum values appear to be Title Case: "Free" / "Paid".
+        // Your frontend sends "FREE" / "PAID", so normalize for compatibility.
+        const normalizedPrice = (() => {
+            if (typeof Price !== 'string') return Price;
+            const p = Price.trim().toUpperCase();
+            if (p === 'FREE') return 'Free';
+            if (p === 'PAID') return 'Paid';
+            return Price;
+        })();
+
         let payloadData = {
             "Title": Name,
             "Description": Description,
@@ -84,7 +95,7 @@ app.post('/api/events', async (req, res) => {
             "Itinerary": Itinerary,
             "start_time": start_time,
             "end_time": end_time,
-            "Price": Price,
+            "Price": normalizedPrice,
             "UPI_ID": UPI_ID || "",
             "DL_Protocol": DL_Protocol || "NO",
             "Hubs": Hub_ID ? [Hub_ID] : []
