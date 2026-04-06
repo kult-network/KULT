@@ -28,12 +28,12 @@ const Auth = () => {
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/user-role`, {
+        await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-role`, {
           email: user.email,
           name: fullName,
           role: 'USER'
         });
-        await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/send-welcome-email`, {
+        await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/send-welcome-email`, {
           email: user.email,
           name: fullName
         });
@@ -52,9 +52,9 @@ const Auth = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       showToast(`SYNCING GOOGLE IDENTITY... 🛰️`, 'success');
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/user-role/${user.email}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-role/${user.email}`);
       if (!res.data.id || res.data.Role === 'USER') {
-        await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/user-role`, {
+        await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-role`, {
           email: user.email,
           name: user.displayName || user.email.split('@')[0],
           role: 'USER'

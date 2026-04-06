@@ -7,7 +7,7 @@ const Notifications = ({ user }) => {
   useEffect(() => {
     const fetchMyBookings = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/user-bookings/${user.email}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-bookings/${user.email}`);
         setBookings(res.data);
       } catch (err) {
         console.error("Notification Error:", err);

@@ -38,7 +38,7 @@ const HubsList = ({ user, role }) => {
 
     const fetchData = async () => {
       try {
-        const resHubs = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/hubs`);
+        const resHubs = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/hubs`);
         const data = resHubs.data.list || resHubs.data;
         const parsedHubs = Array.isArray(data) ? data : [];
         setHubs(parsedHubs);
@@ -51,7 +51,7 @@ const HubsList = ({ user, role }) => {
       // Add a tiny delay to respect rate limits
       await new Promise(r => setTimeout(r, 200));
       try {
-        const resAct = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/activity`);
+        const resAct = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/activity`);
         const data = resAct.data;
         setActivities(Array.isArray(data) ? data : data.list || []);
       } catch (err) {
@@ -60,7 +60,7 @@ const HubsList = ({ user, role }) => {
 
       await new Promise(r => setTimeout(r, 200));
       try {
-        const resPoll = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/polls/active`);
+        const resPoll = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/polls/active`);
         if (resPoll.data) {
           setActivePoll(resPoll.data);
           const pollId = resPoll.data.id || resPoll.data.Id;
@@ -80,11 +80,11 @@ const HubsList = ({ user, role }) => {
     if (!activePoll || voted) return;
     const pollId = activePoll.id || activePoll.Id;
     try {
-      const res = await axios.patch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/polls/${pollId}/vote`, { option });
+      const res = await axios.patch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/polls/${pollId}/vote`, { option });
       if (res.data.success) {
         setVoted(true);
         localStorage.setItem(`voted_${pollId}`, 'true');
-        const updated = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/polls/active`);
+        const updated = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/polls/active`);
         setActivePoll(updated.data);
       }
     } catch (e) { console.error("❌ Vote Error:", e.message); }

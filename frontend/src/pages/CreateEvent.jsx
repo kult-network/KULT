@@ -29,7 +29,7 @@ const CreateEvent = () => {
     Redirect_Link: ''
   });
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/hubs`).then(res => {
+    axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/hubs`).then(res => {
         const data = Array.isArray(res.data) ? res.data : res.data.list || [];
         setHubs(data);
     });
@@ -76,7 +76,7 @@ const CreateEvent = () => {
         Redirect_Link: formData.Redirect_Link || ""
       };
       console.log("🚀 Syncing Mission:", payload.Name);
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/events`, payload);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/events`, payload);
       if (res.data.success) {
         showToast("MISSION DEPLOYED TO LIVE FEED! 🛰️", "success");
         setTimeout(() => navigate(`/hub/${formData.Hubs[0]}`), 2000);

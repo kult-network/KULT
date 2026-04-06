@@ -13,7 +13,7 @@ const OrganizerDashboard = () => {
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
   const fetchBookings = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/bookings/event/${eventId}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/bookings/event/${eventId}`);
       const data = Array.isArray(res.data) ? res.data : res.data.list || [];
       setBookings(data);
     } catch (err) {
@@ -34,7 +34,7 @@ const OrganizerDashboard = () => {
     }
     try {
       console.log(`📡 Sending Patch for ID: ${id} -> Status: ${newStatus}`);
-      const res = await axios.patch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/bookings/${id}`, { 
+      const res = await axios.patch(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/bookings/${id}`, { 
         Status: newStatus 
       });
       if (res.data.success) {

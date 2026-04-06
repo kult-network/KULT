@@ -18,7 +18,7 @@ const SupervisorPanel = () => {
   };
   const fetchTokens = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/tokens`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/tokens`);
       const data = Array.isArray(res.data) ? res.data : res.data.list || [];
       setTokens([...data]); 
     } catch (err) { console.error("❌ Vault Sync Fail", err); }
@@ -28,7 +28,7 @@ const SupervisorPanel = () => {
     setLoading(true);
     setNewlyGeneratedToken(""); 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/tokens/generate`);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/tokens/generate`);
       if (res.data.success) {
         setNewlyGeneratedToken(res.data.token); 
         fetchTokens();
@@ -41,7 +41,7 @@ const SupervisorPanel = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/hubs`, newHub);
+      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/hubs`, newHub);
       showToast(`HUB ONLINE: ${newHub.Name.toUpperCase()}`, "success");
       setNewHub({ Name: '', Location: '', Tagline: '' });
     } catch (err) { showToast("HUB DEPLOYMENT FAILED", "error"); }
@@ -52,7 +52,7 @@ const SupervisorPanel = () => {
     if (!pollData.Question || !pollData.OptionA || !pollData.OptionB) return showToast("FILL ALL FIELDS", "error");
     setLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/polls`, { ...pollData, VotesA: 0, VotesB: 0 });
+      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/polls`, { ...pollData, VotesA: 0, VotesB: 0 });
       showToast("VIBE CHECK BROADCASTED! 🛰️", "success");
       setPollData({ Question: '', OptionA: '', OptionB: '' });
     } catch (err) { showToast("POLL BROADCAST FAILED", "error"); }

@@ -40,7 +40,7 @@ function App() {
       if (u) {
         setUser(u); 
         try {
-          const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/user-role/${u.email}`);
+          const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-role/${u.email}`);
           if (res.data && res.data.Role) {
             setRole(res.data.Role.toUpperCase());
           } else {

@@ -21,7 +21,7 @@ const VerifyToken = () => {
     setLoading(true);
     try {
       const user = auth.currentUser;
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/verify-organizer`, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/verify-organizer`, {
         email: user.email,
         name: user.displayName || user.email.split('@')[0],
         token: cleanToken 

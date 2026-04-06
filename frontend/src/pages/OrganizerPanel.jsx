@@ -10,7 +10,7 @@ const OrganizerPanel = ({ user }) => {
   useEffect(() => {
     const fetchMyMissions = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://YOUR_BACKEND_URL`)}/api/organizer-events/${user.email}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/organizer-events/${user.email}`);
         setMyEvents(res.data);
       } catch (err) {
         console.error("Panel Sync Error:", err);
