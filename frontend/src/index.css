@@ -1,14 +1,43 @@
 @import "tailwindcss";
-/* 🖋️ Catchy & Solid Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+/* 🖋️ Beautiful Global Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap');
+
+:root {
+  --text-primary: #111827;
+  --text-secondary: #475569;
+  --accent-color: #7c3aed;
+  --accent: #7c3aed;
+  --accent-border: rgba(124, 58, 237, 0.24);
+  --accent-bg: rgba(124, 58, 237, 0.08);
+  --shadow-color: rgba(124, 58, 237, 0.16);
+  --border-color: #e5e7eb;
+  --border: #e5e7eb;
+  --text-h: #111827;
+  --body-bg: #fbfdff;
+}
 
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background-color: #fbfdff;
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.08), transparent 24%),
+              radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.08), transparent 24%),
+              var(--body-bg);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a, button, input, textarea, select {
+  font-family: inherit;
+}
+
+button, a, input, textarea, select {
+  transition: color 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 /* 🎨 Ultra Bold Logo Font (No Italic = No Cutting) */

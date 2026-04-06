@@ -37,6 +37,34 @@ function App() {
     }
   };
   useEffect(() => {
+    const colorPalettes = [
+      { primary: '#111827', secondary: '#374151', accent: '#7c3aed', accentBg: 'rgba(124, 58, 237, 0.08)', accentBorder: 'rgba(124, 58, 237, 0.24)', shadow: 'rgba(124, 58, 237, 0.16)', border: '#ddd6fe' },
+      { primary: '#0f172a', secondary: '#475569', accent: '#06b6d4', accentBg: 'rgba(6, 182, 212, 0.1)', accentBorder: 'rgba(6, 182, 212, 0.24)', shadow: 'rgba(6, 182, 212, 0.18)', border: '#bae6fd' },
+      { primary: '#1f2937', secondary: '#4b5563', accent: '#ec4899', accentBg: 'rgba(236, 72, 153, 0.1)', accentBorder: 'rgba(236, 72, 153, 0.24)', shadow: 'rgba(236, 72, 153, 0.18)', border: '#fed7e2' },
+      { primary: '#111827', secondary: '#6b7280', accent: '#22c55e', accentBg: 'rgba(34, 197, 94, 0.1)', accentBorder: 'rgba(34, 197, 94, 0.24)', shadow: 'rgba(34, 197, 94, 0.16)', border: '#bbf7d0' },
+      { primary: '#0f172a', secondary: '#64748b', accent: '#f97316', accentBg: 'rgba(249, 115, 22, 0.1)', accentBorder: 'rgba(249, 115, 22, 0.24)', shadow: 'rgba(249, 115, 22, 0.18)', border: '#fed7aa' },
+      { primary: '#111827', secondary: '#536471', accent: '#38bdf8', accentBg: 'rgba(56, 189, 248, 0.12)', accentBorder: 'rgba(56, 189, 248, 0.24)', shadow: 'rgba(56, 189, 248, 0.16)', border: '#bae6fd' },
+      { primary: '#1f2937', secondary: '#475569', accent: '#f59e0b', accentBg: 'rgba(245, 158, 11, 0.1)', accentBorder: 'rgba(245, 158, 11, 0.24)', shadow: 'rgba(245, 158, 11, 0.18)', border: '#fde68a' },
+      { primary: '#111827', secondary: '#57606f', accent: '#8b5cf6', accentBg: 'rgba(139, 92, 246, 0.08)', accentBorder: 'rgba(139, 92, 246, 0.24)', shadow: 'rgba(139, 92, 246, 0.16)', border: '#ddd6fe' },
+      { primary: '#0f172a', secondary: '#475569', accent: '#f43f5e', accentBg: 'rgba(244, 63, 94, 0.1)', accentBorder: 'rgba(244, 63, 94, 0.24)', shadow: 'rgba(244, 63, 94, 0.18)', border: '#fecdd3' },
+      { primary: '#111827', secondary: '#4b5563', accent: '#0ea5e9', accentBg: 'rgba(14, 165, 233, 0.1)', accentBorder: 'rgba(14, 165, 233, 0.24)', shadow: 'rgba(14, 165, 233, 0.18)', border: '#bfdbfe' },
+      { primary: '#1f2937', secondary: '#64748b', accent: '#22c55e', accentBg: 'rgba(34, 197, 94, 0.08)', accentBorder: 'rgba(34, 197, 94, 0.24)', shadow: 'rgba(34, 197, 94, 0.18)', border: '#dcfce7' },
+      { primary: '#111827', secondary: '#475569', accent: '#f97316', accentBg: 'rgba(249, 115, 22, 0.08)', accentBorder: 'rgba(249, 115, 22, 0.24)', shadow: 'rgba(249, 115, 22, 0.18)', border: '#fed7aa' }
+    ];
+    const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+    const root = document.documentElement.style;
+    root.setProperty('--text-primary', palette.primary);
+    root.setProperty('--text-secondary', palette.secondary);
+    root.setProperty('--accent-color', palette.accent);
+    root.setProperty('--accent', palette.accent);
+    root.setProperty('--accent-border', palette.accentBorder);
+    root.setProperty('--accent-bg', palette.accentBg);
+    root.setProperty('--shadow-color', palette.shadow);
+    root.setProperty('--border-color', palette.border);
+    root.setProperty('--border', palette.border);
+    root.setProperty('--text-h', palette.primary);
+    root.setProperty('--bg-soft', 'rgba(248, 250, 252, 1)');
+
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u); 
