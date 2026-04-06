@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Check, X, Eye, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import Toast from '../components/Toast';
 const OrganizerDashboard = () => {

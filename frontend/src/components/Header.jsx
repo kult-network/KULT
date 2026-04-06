@@ -3,6 +3,7 @@ import { Zap, LogOut, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 const Header = ({ user, userData, role }) => {
   const navigate = useNavigate();
   const userRole = role?.toUpperCase();

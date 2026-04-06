@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Key, Copy, Check, Globe, Plus, ArrowLeft, Loader2, ShieldAlert, MessageSquare, BarChart3 } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Toast from '../components/Toast'; 
 const SupervisorPanel = () => {
   const [tokens, setTokens] = useState([]);
