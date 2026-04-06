@@ -69,7 +69,7 @@ const Auth = () => {
     }
   };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fbfdff] font-sharp p-6 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--body-bg)] font-sharp p-6 relative overflow-hidden text-[var(--text-primary)]">
       <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600 rounded-full blur-[150px] opacity-5 -mr-48 -mt-48"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600 rounded-full blur-[150px] opacity-5 -ml-48 -mb-48"></div>
       <Toast 

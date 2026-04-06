@@ -88,12 +88,12 @@ function App() {
     return () => unsubscribe();
   }, []);
   if (loading) return (
-    <div className="h-screen flex items-center justify-center font-black text-purple-600 animate-pulse uppercase tracking-[0.5em] text-2xl bg-[#fbfdff]">
+    <div className="h-screen flex items-center justify-center font-black text-purple-600 animate-pulse uppercase tracking-[0.5em] text-2xl bg-[var(--body-bg)]">
       Syncing Neural Identity...
     </div>
   );
   return (
-    <div className="min-h-screen bg-[#fbfdff] flex flex-col">
+    <div className="min-h-screen bg-[var(--body-bg)] flex flex-col text-[var(--text-primary)]">
       <Header 
         user={user} 
         role={role} 

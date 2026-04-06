@@ -91,7 +91,7 @@ const CreateEvent = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-[#fbfdff] pb-20 font-sharp pt-12 px-6">
+    <div className="min-h-screen bg-[var(--body-bg)] pb-20 font-sharp pt-12 px-6 text-[var(--text-primary)]">
       <Toast isVisible={toast.show} message={toast.msg} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
       <main className="max-w-3xl mx-auto">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-black text-[10px] tracking-widest uppercase text-gray-400 mb-8 transition-all hover:text-black">

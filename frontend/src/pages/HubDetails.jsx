@@ -103,7 +103,7 @@ const HubDetails = ({ user, role }) => {
   };
   if (loading) return <div className="h-screen flex items-center justify-center bg-white font-sporty font-black text-gray-200 text-[8vw] animate-pulse uppercase">Accessing Node...</div>;
   return (
-    <div className="min-h-screen bg-[#fbfdff] relative font-sharp selection:bg-purple-600 selection:text-white pb-20">
+    <div className="min-h-screen bg-[var(--body-bg)] relative font-sharp selection:bg-purple-600 selection:text-white pb-20 text-[var(--text-primary)]">
       <AnimatePresence>
         {selectedEvent && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-10 backdrop-blur-3xl bg-black/90">

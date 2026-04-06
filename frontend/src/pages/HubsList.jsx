@@ -96,7 +96,7 @@ const HubsList = ({ user }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#fbfdff] font-sharp pb-20 selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen bg-[var(--body-bg)] font-sharp pb-20 selection:bg-purple-600 selection:text-white text-[var(--text-primary)]">
 
       <main className="max-w-7xl mx-auto px-6">
         {/* HEADER SECTION */}

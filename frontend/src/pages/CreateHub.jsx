@@ -19,7 +19,7 @@ const CreateHub = () => {
     } finally { setLoading(false); }
   };
   return (
-    <div className="min-h-screen bg-[#fbfdff] p-12 font-sharp">
+    <div className="min-h-screen bg-[var(--body-bg)] p-12 font-sharp text-[var(--text-primary)]">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-black text-[10px] tracking-widest uppercase text-gray-400 mb-12">
         <ArrowLeft size={16} /> BACK TO PANEL
       </button>
