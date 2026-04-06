@@ -6,16 +6,9 @@ require('dotenv').config();
 
 const app = express();
 
-// --- CONFIGURATION ---
-// Render assignments PORT dynamically, so we use process.env.PORT
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-
-// CORS setup to allow your Vercel frontend to talk to this Backend
+// --- 1. MIDDLEWARE & CORS ---
 app.use(cors({
-    origin: "*", // Change this to your Vercel URL in production for better security
+    origin: "*", // In production, replace "*" with your Vercel URL
     methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
     allowedHeaders: ["Content-Type", "xc-token"]
 }));
@@ -23,7 +16,8 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Ensure NOCO_BASE_URL is correct from your NocoDB API docs
+// --- 2. CONFIGURATION ---
+// Ensure NOCO_TOKEN is added to Railway Variables tab!
 const NOCO_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/pdo67xcuojyjxq5";
 const HEADERS = { 'xc-token': process.env.NOCO_TOKEN };
 
@@ -36,43 +30,42 @@ const TABLE_ID_BOOKINGS = "mq28zf6dbmbnyhp";
 const TABLE_ID_TOKENS = "mc0b38mv8ao1a1o";
 const TABLE_ID_POLLS = "mc7vexszhan3k4r";
 
-// --- HELPER FUNCTIONS ---
+// --- 3. HELPER FUNCTIONS ---
 const logActivity = async (message, type = "GENERAL") => {
     try {
-        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_ACTIVITY}`, { Log: message, Type: type }, { headers: HEADERS });
-    } catch (e) { console.error("Pulse log failed:", e.message); }
+        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_ACTIVITY}/rows`, { Log: message, Type: type }, { headers: HEADERS });
+    } catch (e) {
+        console.error("Pulse log failed:", e.response?.data || e.message);
+    }
 };
 
-// --- API ROUTES ---
+// --- 4. API ROUTES ---
 
-// 1. Get All Hubs
+// Get All Hubs
 app.get('/api/hubs', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}`, { headers: HEADERS });
-        res.json(response.data.list || response.data || []);
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}/rows`, { headers: HEADERS });
+        res.json(response.data.list || []);
     } catch (err) {
-        console.error("DEBUG HUBS ERROR:", err.response?.data || err.message);
         res.status(500).json({ error: "Failed to fetch hubs", details: err.message });
     }
 });
 
-// 2. Create New Hub
+// Create New Hub
 app.post('/api/hubs', async (req, res) => {
     try {
-        const response = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}`, { ...req.body, Status: 'Active' }, { headers: HEADERS });
+        const response = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}/rows`, { ...req.body, Status: 'Active' }, { headers: HEADERS });
         await logActivity(`🏗️ NEW HUB DEPLOYED: ${req.body.Name?.toUpperCase()}`, "SYSTEM");
         res.json({ success: true, data: response.data });
     } catch (err) {
-        console.error("Hub Creation Error:", err.response?.data || err.message);
         res.status(500).json({ error: "Hub deployment failed" });
     }
 });
 
-// 3. Host New Event (Mission)
+// Host New Event
 app.post('/api/events', async (req, res) => {
     try {
         const { Name, Description, Category, start_time, end_time, Price, Hub_ID, Speaker, Poster, Itinerary, Redirect_Link, UPI_ID } = req.body;
-
         let payloadData = {
             "Title": Name,
             "Description": Description,
@@ -88,109 +81,44 @@ app.post('/api/events', async (req, res) => {
         };
         if (Redirect_Link) payloadData["Redirect_Link"] = Redirect_Link;
 
-        const response = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, payloadData, { headers: HEADERS });
+        const response = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/rows`, payloadData, { headers: HEADERS });
         await logActivity(`🚀 MISSION LIVE: ${Name?.toUpperCase()}`, "EVENT");
         res.json({ success: true, data: response.data });
     } catch (err) {
-        console.error("❌ Mission Sync Error:", err.response?.data || err.message);
         res.status(500).json({ error: "Failed to host mission" });
     }
 });
 
-// 4. Get Events by Hub ID
-app.get('/api/hubs/:id/events', async (req, res) => {
-    try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
-            headers: HEADERS,
-            params: { limit: 100, sort: '-Id' }
-        });
-        const allEvents = response.data.list || response.data || [];
-        const hubEvents = allEvents.filter(e => e.Hubs && e.Hubs.some(h => String(h.Id || h.id) === String(req.params.id)));
-        res.json(hubEvents);
-    } catch (err) {
-        console.error("Fetch Events Error:", err.response?.data || err.message);
-        res.status(500).json({ error: "Failed to fetch hub events" });
-    }
-});
-
-// 5. Get/Sync User Role
+// User Role Sync
 app.get('/api/user-role/:email', async (req, res) => {
     const { email } = req.params;
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}/rows`, {
             params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
             headers: HEADERS
         });
-        const list = response.data.list || response.data;
-        res.json(Array.isArray(list) ? list[0] : list || { Role: 'USER' });
+        const list = response.data.list || [];
+        res.json(list[0] || { Role: 'USER' });
     } catch (err) { res.json({ Role: 'USER' }); }
 });
 
-app.post('/api/user-role', async (req, res) => {
-    const { email, name, role } = req.body;
-    try {
-        const getRes = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
-            params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
-            headers: HEADERS
-        });
-        const list = getRes.data.list || getRes.data || [];
-        if (list.length > 0) return res.json({ success: true, data: list[0] });
-
-        const postRes = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
-            "Email": email.toLowerCase().trim(),
-            "Name": name || email.split('@')[0],
-            "Role": role || 'USER'
-        }, { headers: HEADERS });
-
-        res.json({ success: true, data: postRes.data });
-    } catch (err) {
-        console.error("User Sync Error:", err.message);
-        res.status(500).json({ error: "Failed to sync user" });
-    }
-});
-
-// 6. Tokens, Polls, Bookings, Activity (Mini-Routes)
+// Token Generation
 app.post('/api/tokens/generate', async (req, res) => {
     try {
         const newToken = `KULT-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_TOKENS}`, { Token: newToken, Status: 'Unused' }, { headers: HEADERS });
+        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_TOKENS}/rows`, { Token: newToken, Status: 'Unused' }, { headers: HEADERS });
         res.json({ success: true, token: newToken });
     } catch (err) { res.status(500).json({ error: "Token fail" }); }
 });
 
-app.post('/api/polls', async (req, res) => {
-    try {
-        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_POLLS}`, { ...req.body, VotesA: 0, VotesB: 0, Status: 'Active' }, { headers: HEADERS });
-        await logActivity(`📊 NEW VIBE CHECK: ${req.body.Question?.toUpperCase()}`, "SYSTEM");
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Poll fail" }); }
-});
+// Root check
+app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 
-app.get('/api/polls/active', async (req, res) => {
-    try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_POLLS}`, { headers: HEADERS, params: { limit: 1, sort: '-Id' } });
-        res.json(response.data.list?.[0] || null);
-    } catch (err) { res.status(500).json(null); }
-});
+// --- 5. SERVER START ---
+// Railway dynamically assigns PORT; default to 5001 for local dev
+const PORT = process.env.PORT || 5001;
 
-app.post('/api/bookings', async (req, res) => {
-    try {
-        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_BOOKINGS}`, req.body, { headers: HEADERS });
-        await logActivity(`🎟️ REGISTRATION: ${req.body.Name?.toUpperCase()} -> ${req.body.Event_Name?.toUpperCase()}`, "BOOKING");
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Booking fail" }); }
-});
-
-app.get('/api/activity', async (req, res) => {
-    try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_ACTIVITY}`, { headers: HEADERS, params: { limit: 15, sort: '-Id' } });
-        res.json(response.data.list || []);
-    } catch (err) { res.status(500).json([]); }
-});
-
-// --- SERVER START ---
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 KULT ENGINE MASTER - ONLINE`);
-    console.log(`📡 PORT: ${PORT}`);
-    console.log(`🔗 API BASE: ${NOCO_BASE_URL}`);
+    console.log(`📡 LISTENING ON PORT: ${PORT}`);
 });
