@@ -60,7 +60,21 @@ app.post('/api/hubs', async (req, res) => {
 // Host New Event
 app.post('/api/events', async (req, res) => {
     try {
-        const { Name, Description, Category, start_time, end_time, Price, Hub_ID, Speaker, Poster, Itinerary, Redirect_Link, UPI_ID } = req.body;
+        const {
+            Name,
+            Description,
+            Category,
+            start_time,
+            end_time,
+            Price,
+            Hub_ID,
+            Speaker,
+            Poster,
+            Itinerary,
+            Redirect_Link,
+            UPI_ID,
+            DL_Protocol
+        } = req.body;
         let payloadData = {
             "Title": Name,
             "Description": Description,
@@ -72,6 +86,7 @@ app.post('/api/events', async (req, res) => {
             "end_time": end_time,
             "Price": Price,
             "UPI_ID": UPI_ID || "",
+            "DL_Protocol": DL_Protocol || "NO",
             "Hubs": Hub_ID ? [Hub_ID] : []
         };
         if (Redirect_Link) payloadData["Redirect_Link"] = Redirect_Link;
@@ -80,7 +95,9 @@ app.post('/api/events', async (req, res) => {
         await logActivity(`🚀 MISSION LIVE: ${Name?.toUpperCase()}`, "EVENT");
         res.json({ success: true, data: response.data });
     } catch (err) {
-        res.status(500).json({ error: "Failed to host mission" });
+        const details = err.response?.data || err.message;
+        console.error("Failed to host mission:", details);
+        res.status(500).json({ error: "Failed to host mission", details });
     }
 });
 

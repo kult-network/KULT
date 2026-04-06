@@ -4,6 +4,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Zap, Clock, Ticket, User, Loader2, Image as ImageIcon, Plus, Trash2, ChevronDown, IndianRupee } from 'lucide-react';
 import Toast from '../components/Toast'; 
+
+const API_BASE_URL = import.meta.env.DEV
+  ? 'http://localhost:5001'
+  : 'https://kult-production.up.railway.app';
+
 const CreateEvent = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -29,7 +34,7 @@ const CreateEvent = () => {
     Redirect_Link: ''
   });
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/hubs`).then(res => {
+    axios.get(`${API_BASE_URL}/api/hubs`).then(res => {
         const data = Array.isArray(res.data) ? res.data : res.data.list || [];
         setHubs(data);
     });
@@ -76,7 +81,7 @@ const CreateEvent = () => {
         Redirect_Link: formData.Redirect_Link || ""
       };
       console.log("🚀 Syncing Mission:", payload.Name);
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/events`, payload);
+      const res = await axios.post(`${API_BASE_URL}/api/events`, payload);
       if (res.data.success) {
         showToast("MISSION DEPLOYED TO LIVE FEED! 🛰️", "success");
         setTimeout(() => navigate(`/hub/${formData.Hubs[0]}`), 2000);
