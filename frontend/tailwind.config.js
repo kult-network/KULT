@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sporty: ['Sora', 'sans-serif'], // For KULT Logo & Main Headers
+        sporty: ['Poppins', 'sans-serif'], // For KULT Logo & Main Headers
         sharp: ['Poppins', 'sans-serif'],   // For Body & Card Info
         sans: ['Poppins', 'sans-serif'],
       },
