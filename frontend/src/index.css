@@ -10,6 +10,7 @@
   --accent-border: rgba(124, 58, 237, 0.24);
   --accent-bg: rgba(124, 58, 237, 0.08);
   --shadow-color: rgba(124, 58, 237, 0.16);
+  --card-bg: rgba(255, 255, 255, 0.68);
   --border-color: #e5e7eb;
   --border: #e5e7eb;
   --text-h: #111827;
@@ -19,7 +20,7 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif !important;
   background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.08), transparent 24%),
               radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.08), transparent 24%),
               var(--body-bg);
@@ -32,12 +33,20 @@ body {
   box-sizing: border-box;
 }
 
-a, button, input, textarea, select {
-  font-family: inherit;
+a, button, input, textarea, select, optgroup, option {
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif !important;
 }
 
 button, a, input, textarea, select {
   transition: color 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.font-sharp {
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif !important;
+}
+
+.font-sporty {
+  font-family: 'Syne', sans-serif !important;
 }
 
 /* 🎨 Ultra Bold Logo Font (No Italic = No Cutting) */

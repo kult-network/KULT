@@ -60,6 +60,7 @@ function App() {
     root.setProperty('--accent-border', palette.accentBorder);
     root.setProperty('--accent-bg', palette.accentBg);
     root.setProperty('--shadow-color', palette.shadow);
+    root.setProperty('--card-bg', 'rgba(255, 255, 255, 0.82)');
     root.setProperty('--border-color', palette.border);
     root.setProperty('--border', palette.border);
     root.setProperty('--text-h', palette.primary);
