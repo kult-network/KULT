@@ -1,6 +1,6 @@
 @import "tailwindcss";
-/* 🖋️ Beautiful Global Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap');
+/* 🖋️ New Global Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Sora:wght@600;700;800&display=swap');
 
 :root {
   --text-primary: #111827;
@@ -8,21 +8,23 @@
   --accent-color: #7c3aed;
   --accent: #7c3aed;
   --accent-border: rgba(124, 58, 237, 0.24);
-  --accent-bg: rgba(124, 58, 237, 0.08);
-  --shadow-color: rgba(124, 58, 237, 0.16);
-  --card-bg: rgba(255, 255, 255, 0.68);
+  --accent-bg: rgba(124, 58, 237, 0.1);
+  --shadow-color: rgba(124, 58, 237, 0.18);
+  --card-bg: rgba(255, 255, 255, 0.88);
+  --surface: rgba(255, 255, 255, 0.75);
+  --surface-strong: rgba(255, 255, 255, 0.94);
   --border-color: #e5e7eb;
   --border: #e5e7eb;
   --text-h: #111827;
-  --body-bg: #fbfdff;
+  --body-bg: #f8fafc;
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif !important;
-  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.08), transparent 24%),
-              radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.08), transparent 24%),
+  font-family: 'Poppins', sans-serif !important;
+  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.08), transparent 22%),
+              radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.08), transparent 22%),
               var(--body-bg);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -34,7 +36,18 @@ body {
 }
 
 a, button, input, textarea, select, optgroup, option {
-  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Sora', sans-serif !important;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+p, span, li, button, input, textarea, select {
+  font-family: 'Poppins', sans-serif !important;
 }
 
 button, a, input, textarea, select {
@@ -51,7 +64,7 @@ button, a, input, textarea, select {
 
 /* 🎨 Ultra Bold Logo Font (No Italic = No Cutting) */
 .font-logo {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Sora', sans-serif;
   text-transform: uppercase;
   letter-spacing: -0.02em;
 }
