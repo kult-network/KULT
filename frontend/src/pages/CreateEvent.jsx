@@ -4,10 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Zap, Clock, Ticket, User, Loader2, Image as ImageIcon, Plus, Trash2, ChevronDown, IndianRupee } from 'lucide-react';
 import Toast from '../components/Toast'; 
-
-const API_BASE_URL = import.meta.env.DEV
-  ? 'http://localhost:5001'
-  : 'https://kult-production.up.railway.app';
+import { API_BASE_URL } from '../config/api';
 
 const CreateEvent = () => {
   const navigate = useNavigate();

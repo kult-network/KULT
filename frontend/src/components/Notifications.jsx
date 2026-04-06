@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Bell, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 const Notifications = ({ user }) => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const fetchMyBookings = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-bookings/${user.email}`);
+        const res = await axios.get(`${API_BASE_URL}/api/user-bookings/${user.email}`);
         setBookings(res.data);
       } catch (err) {
         console.error("Notification Error:", err);

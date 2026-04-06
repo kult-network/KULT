@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Ticket, User, Zap, Plus, X, ShieldCheck,
@@ -36,8 +37,8 @@ const HubDetails = ({ user, role }) => {
     const fetchData = async () => {
       setLoading(true);
       setRandomTag(RANDOM_TAGLINES[Math.floor(Math.random() * RANDOM_TAGLINES.length)]);
-      const pEvents = axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/hubs/${id}/events`);
-      const pHubs = axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/hubs`);
+      const pEvents = axios.get(`${API_BASE_URL}/api/hubs/${id}/events`);
+      const pHubs = axios.get(`${API_BASE_URL}/api/hubs`);
       const [resEvents, resHubs] = await Promise.allSettled([pEvents, pHubs]);
       if (resEvents.status === 'fulfilled') {
         const data = resEvents.value.data;
@@ -63,7 +64,7 @@ const HubDetails = ({ user, role }) => {
       Payment_Screenshot: screenshot ? [{ path: screenshot, fileName: `ss_${Date.now()}.png` }] : []
     };
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/bookings`, payload);
+      await axios.post(`${API_BASE_URL}/api/bookings`, payload);
       setRegSuccess(true);
       
       if (selectedEvent.Redirect_Link) {

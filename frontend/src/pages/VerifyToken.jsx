@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import { auth } from '../firebase';
 import { ShieldCheck, Zap, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -21,7 +22,7 @@ const VerifyToken = () => {
     setLoading(true);
     try {
       const user = auth.currentUser;
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/verify-organizer`, {
+      const res = await axios.post(`${API_BASE_URL}/api/verify-organizer`, {
         email: user.email,
         name: user.displayName || user.email.split('@')[0],
         token: cleanToken 

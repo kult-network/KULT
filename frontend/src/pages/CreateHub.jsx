@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Globe, MapPin, Info, Zap } from 'lucide-react';
 const CreateHub = () => {
@@ -10,7 +11,7 @@ const CreateHub = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/hubs`, formData);
+      await axios.post(`${API_BASE_URL}/api/hubs`, formData);
       alert("NEW HUB ACTIVATED! 🌍");
       navigate('/');
     } catch (err) {

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import axios from 'axios';
+import { API_BASE_URL } from './config/api';
 import Header from './components/Header';
 import HubsList from './pages/HubsList';
 import HubDetails from './pages/HubDetails';
@@ -40,7 +41,7 @@ function App() {
       if (u) {
         setUser(u); 
         try {
-          const res = await axios.get(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-role/${u.email}`);
+          const res = await axios.get(`${API_BASE_URL}/api/user-role/${u.email}`);
           if (res.data && res.data.Role) {
             setRole(res.data.Role.toUpperCase());
           } else {

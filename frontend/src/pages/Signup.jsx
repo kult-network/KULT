@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { auth } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -13,7 +14,7 @@ const Signup = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      await axios.post(`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${window.location.hostname}:5001` : `https://kult-production.up.railway.app`)}/api/user-role`, {
+      await axios.post(`${API_BASE_URL}/api/user-role`, {
         email: user.email,
         name: fullName, 
         role: 'USER'
