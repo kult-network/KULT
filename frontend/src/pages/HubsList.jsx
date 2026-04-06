@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { motion } from 'framer-motion';
 import {
   Globe, Zap, ArrowRight, Activity,
   MessageSquare, TrendingUp

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Zap, Clock, Ticket, User, Loader2, Image as ImageIcon, Plus, Trash2, ChevronDown, IndianRupee } from 'lucide-react';
 import Toast from '../components/Toast'; 
 import { API_BASE_URL } from '../config/api';

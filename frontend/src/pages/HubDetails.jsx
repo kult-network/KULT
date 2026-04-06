@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Ticket, User, Zap, Plus, X, ShieldCheck,
   Clock, Mic2, BookOpen, Music, Layers, Info, Mail, Key, Image as ImageIcon, Calendar, ChevronRight, Loader2, CheckCircle2

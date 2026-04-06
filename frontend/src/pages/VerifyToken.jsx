@@ -4,6 +4,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import { auth } from '../firebase';
 import { ShieldCheck, Zap, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Toast from '../components/Toast'; 
 const VerifyToken = () => {
   const [token, setToken] = useState("");

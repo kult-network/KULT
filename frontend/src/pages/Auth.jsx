@@ -4,6 +4,7 @@ import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPass
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Zap, User, Loader2, Mail, Lock, ShieldCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Toast from '../components/Toast'; 
 import { API_BASE_URL } from '../config/api';
 const Auth = () => {
