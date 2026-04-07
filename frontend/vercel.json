@@ -1,16 +1,27 @@
 {
-    "rewrites": [
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
         {
-            "source": "/api/(.*)",
-            "destination": "https://kult-production.up.railway.app/api/$1"
-        },
-        {
-            "source": "/__/auth/:path*",
-            "destination": "https://kult-e9a2a.firebaseapp.com/__/auth/:path*"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/"
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
         }
-    ]
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://kult-production.up.railway.app/api/$1"
+    },
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://kult-e9a2a.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
 }
