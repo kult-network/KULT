@@ -51,7 +51,7 @@ const Header = ({ user, userData, role }) => {
     );
   };
   return (
-    <nav className="fixed top-0 left-0 w-full h-20 px-4 sm:px-6 md:px-12 flex flex-wrap justify-between items-center gap-3 bg-slate-950/90 backdrop-blur-2xl border border-white/10 z-[1000] shadow-2xl">
+    <nav className="w-full h-20 px-4 sm:px-6 md:px-12 flex flex-wrap justify-between items-center gap-3 bg-slate-950/90 backdrop-blur-2xl border border-white/10 z-[1000] shadow-2xl">
       <Link to="/" className="flex items-center gap-2 group">
         <div className="p-2 bg-slate-900/90 text-white rounded-2xl group-hover:bg-purple-600 transition-all duration-300 shadow-2xl shadow-purple-500/10">
           <Zap size={20} fill="white" />

@@ -7,11 +7,13 @@ import {
   ArrowLeft, Ticket, User, Zap, Plus, X, ShieldCheck,
   Clock, Mic2, BookOpen, Music, Layers, Info, Mail, Key, Image as ImageIcon, Calendar, ChevronRight, Loader2, CheckCircle2
 } from 'lucide-react';
+
 const RANDOM_TAGLINES = [
   "NEURAL INTERFACE ACTIVE", "GATEWAY TO THE KULT", "CYBERNETIC ECOSYSTEM LIVE",
   "DECENTRALIZE THE CAMPUS", "THE FUTURE IS ENCRYPTED", "SYNCING WITH DESTINY",
   "BEYOND THE GRID", "REVOLUTION STARTING NOW", "PROTOCOLS INITIALIZED"
 ];
+
 const KULT_COLORS = [
   { bg: "bg-purple-600", text: "text-purple-600", light: "bg-purple-50", border: "border-purple-100", shadow: "shadow-purple-200" },
   { bg: "bg-blue-600", text: "text-blue-600", light: "bg-blue-50", border: "border-blue-100", shadow: "shadow-blue-200" },
@@ -20,6 +22,7 @@ const KULT_COLORS = [
   { bg: "bg-yellow-500", text: "text-yellow-500", light: "bg-yellow-50", border: "border-yellow-100", shadow: "shadow-yellow-200" },
   { bg: "bg-orange-500", text: "text-orange-500", light: "bg-orange-50", border: "border-orange-100", shadow: "shadow-orange-200" },
 ];
+
 const HubDetails = ({ user, role }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,6 +36,7 @@ const HubDetails = ({ user, role }) => {
   const [regSuccess, setRegSuccess] = useState(false);
   const [screenshot, setScreenshot] = useState(null);
   const [regData, setRegData] = useState({ Name: '', StudentID: '', Stream: '', Year: '' });
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -40,6 +44,7 @@ const HubDetails = ({ user, role }) => {
       const pEvents = axios.get(`${API_BASE_URL}/api/hubs/${id}/events`);
       const pHubs = axios.get(`${API_BASE_URL}/api/hubs`);
       const [resEvents, resHubs] = await Promise.allSettled([pEvents, pHubs]);
+      
       if (resEvents.status === 'fulfilled') {
         const data = resEvents.value.data;
         setEvents(Array.isArray(data) ? data : data.list || []);
@@ -53,6 +58,7 @@ const HubDetails = ({ user, role }) => {
     };
     fetchData();
   }, [id]);
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -70,7 +76,7 @@ const HubDetails = ({ user, role }) => {
       if (selectedEvent.Redirect_Link) {
          setTimeout(() => {
              window.open(selectedEvent.Redirect_Link, '_blank');
-         }, 1000); // Redirect after 1 second of showing success message
+         }, 1000);
       }
 
       setTimeout(() => {
@@ -83,6 +89,7 @@ const HubDetails = ({ user, role }) => {
     } catch { alert("Registration failed. Network congestion."); } 
     finally { setSubmitting(false); }
   };
+
   const handleScreenshot = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -91,6 +98,7 @@ const HubDetails = ({ user, role }) => {
       reader.readAsDataURL(file);
     }
   };
+
   const renderItinerary = (data) => {
     try {
       return JSON.parse(data).map((slot, i) => (
@@ -101,6 +109,23 @@ const HubDetails = ({ user, role }) => {
       ));
     } catch { return null; }
   };
+
+  // Helper to resolve poster URL correctly
+ // --- Updated Helper in HubDetails.jsx ---
+const getPosterUrl = (event) => {
+  // Check 'Poster' (Capital P) as the primary source
+  const rawPoster = event.Poster || event.poster;
+  
+  if (typeof rawPoster === 'string' && rawPoster.startsWith('http')) {
+    return rawPoster;
+  }
+  
+  // Keep the array check just in case
+  if (Array.isArray(rawPoster) && rawPoster[0]) {
+    return rawPoster[0].url || `https://app.nocodb.com${rawPoster[0].path}`;
+  }
+  return null;
+};
   return (
     <div className="min-h-screen bg-[var(--body-bg)] relative font-sharp selection:bg-purple-600 selection:text-white pb-20 text-[var(--text-primary)]">
       <AnimatePresence>
@@ -108,10 +133,16 @@ const HubDetails = ({ user, role }) => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-10 backdrop-blur-3xl bg-black/90">
             <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} className="bg-[#0a0a0a] w-full max-w-6xl max-h-[90vh] rounded-[40px] md:rounded-[60px] border border-white/10 overflow-hidden relative shadow-2xl flex flex-col md:flex-row">
               <button onClick={() => { setSelectedEvent(null); setShowRegForm(false); }} className="absolute top-8 right-8 z-50 p-4 bg-white/5 hover:bg-white text-white hover:text-black rounded-full transition-all active:scale-90"><X size={24} /></button>
+              
               <div className="w-full md:w-1/2 h-48 md:h-auto relative hidden md:block">
-                {selectedEvent.Poster?.[0] ? <img src={selectedEvent.Poster[0].url || `https://app.nocodb.com${selectedEvent.Poster[0].path}`} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-neutral-900" />}
+                {getPosterUrl(selectedEvent) ? (
+                  <img src={getPosterUrl(selectedEvent)} className="w-full h-full object-cover" alt="Poster" />
+                ) : (
+                  <div className="w-full h-full bg-neutral-900 flex items-center justify-center"><ImageIcon size={40} className="text-white/10" /></div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a]"></div>
               </div>
+
               <div className="w-full md:w-1/2 p-8 md:p-16 overflow-y-auto custom-scrollbar text-white">
                 {regSuccess ? (
                   <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
@@ -178,6 +209,7 @@ const HubDetails = ({ user, role }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 relative z-10">
         <div className="flex justify-between items-center mb-16 px-2">
           <Link to="/" className="flex items-center gap-3 font-black text-[10px] tracking-[0.4em] text-purple-400 hover:text-purple-300 transition-all uppercase"><ArrowLeft size={16} /> Exit Command</Link>
@@ -185,6 +217,7 @@ const HubDetails = ({ user, role }) => {
             <Link to={`/create-event?hubId=${id}`} className="flex items-center gap-2 px-8 py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-600 shadow-xl transition-all active:scale-95"><Plus size={16} strokeWidth={3} /> Host Mission</Link>
           )}
         </div>
+
         <header className="mb-24 px-2">
           <div className="flex flex-col gap-4">
             <h1 className="text-[2.8rem] sm:text-[3.5rem] md:text-[6.5rem] font-black font-sporty tracking-tight uppercase leading-[0.95] mb-2 text-gradient max-w-5xl">
@@ -199,17 +232,19 @@ const HubDetails = ({ user, role }) => {
             )}
           </div>
         </header>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-2">
           {loading ? (
             <div className="col-span-full rounded-[40px] md:rounded-[60px] border border-white/10 bg-slate-950/80 shadow-2xl p-16 text-center text-white/80">
               <div className="mb-4 inline-flex items-center justify-center gap-3 text-lg font-black uppercase tracking-[0.2em]">
                 <span className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" /> LOADING HUB NODES...
               </div>
-              <p className="text-sm text-gray-400">The mission grid is powering up. This will be ready in a moment.</p>
+              <p className="text-sm text-gray-400">The mission grid is powering up.</p>
             </div>
           ) : events.length > 0 ? events.map((event, index) => {
             const color = KULT_COLORS[index % KULT_COLORS.length];
-            const posterUrl = event.Poster?.[0] ? (event.Poster[0].url || `https://app.nocodb.com${event.Poster[0].path}`) : null;
+            const posterUrl = getPosterUrl(event);
+            
             return (
               <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className={`bg-slate-950/95 rounded-[40px] md:rounded-[60px] border-2 border-white/10 shadow-2xl overflow-hidden hover:${color.shadow} transition-all group flex flex-col h-auto md:h-[650px] relative`}>
                 {(role?.toUpperCase() === 'ORGANIZER' || role?.toUpperCase() === 'SUPERVISOR') && (
@@ -221,10 +256,16 @@ const HubDetails = ({ user, role }) => {
                     <ShieldCheck size={18} />
                   </button>
                 )}
-                <div className="h-52 md:h-64 relative bg-gray-100 overflow-hidden">
-                  {posterUrl ? <img src={posterUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={40} /></div>}
+                
+                <div className="h-52 md:h-64 relative bg-slate-900 overflow-hidden">
+                  {posterUrl ? (
+                    <img src={posterUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Poster" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-700"><ImageIcon size={40} /></div>
+                  )}
                   <span className={`absolute top-6 left-6 text-[8px] font-black uppercase ${color.bg} text-white px-4 py-2 rounded-full tracking-widest shadow-lg`}>{event.Category}</span>
                 </div>
+
                 <div className="p-6 md:p-10 flex-grow flex flex-col">
                   <h3 className="text-3xl font-black font-sporty uppercase leading-none tracking-tighter mb-6 text-white group-hover:text-purple-400 transition-colors line-clamp-2">{event.Title}</h3>
                   <div className={`border-l-4 ${color.border} pl-6 space-y-3 mb-10`}>
@@ -241,6 +282,7 @@ const HubDetails = ({ user, role }) => {
             <div className="col-span-full py-32 text-center opacity-20"><p className="font-sporty text-5xl uppercase tracking-[0.2em] text-purple-300">Zero Signals</p></div>
           )}
         </div>
+
         {role?.toUpperCase() === 'USER' && (
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mt-32 p-16 md:p-24 bg-black rounded-[70px] text-white shadow-2xl relative overflow-hidden group">
             <div className="relative z-10 lg:flex items-center justify-between gap-10 text-center lg:text-left">
@@ -260,4 +302,5 @@ const HubDetails = ({ user, role }) => {
     </div>
   );
 };
+
 export default HubDetails;

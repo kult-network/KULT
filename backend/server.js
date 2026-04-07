@@ -91,7 +91,7 @@ app.post('/api/events', async (req, res) => {
             "Description": Description,
             "Category": Category,
             "Speaker": Speaker,
-            // "Poster": Poster, // Temporarily removed due to attachment handling
+            "Poster": Poster, // Temporarily removed due to attachment handling
             "Itinerary": Itinerary,
             "start_time": start_time,
             "end_time": end_time,
