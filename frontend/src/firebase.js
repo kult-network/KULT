@@ -1,16 +1,13 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-
+ 
 const firebaseConfig = {
   apiKey: "AIzaSyCu-UbJIIkHJpJVqA_zWZfPxyMdVm3JRcs",
-  
-  // ⚠️ THE FIX: Change this from firebaseapp.com to your Vercel URL
-  authDomain: "kult-nine.vercel.app", 
-  
   projectId: "kult-e9a2a",
   storageBucket: "kult-e9a2a.firebasestorage.app",
   messagingSenderId: "1080960407908",
   appId: "1:1080960407908:web:c85eb3b0d807cf21708271",
+  authDomain: "kult-nine.vercel.app",
   measurementId: "G-9L1MNVBNJV"
 };
 
