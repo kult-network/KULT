@@ -58,19 +58,19 @@ const OrganizerDashboard = () => {
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-12 font-sharp overflow-x-hidden">
       <Toast isVisible={toast.show} message={toast.msg} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
       <div className="max-w-7xl mx-auto flex justify-between items-center mb-12">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-white uppercase font-black text-[10px] tracking-[0.4em] transition-all group">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-purple-400 hover:text-purple-300 uppercase font-black text-[10px] tracking-[0.4em] transition-all group">
           <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> TERMINAL EXIT
         </button>
         <div className="px-6 py-2 bg-purple-600/10 border border-purple-500/20 rounded-full text-purple-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-           <ShieldCheck size={14} /> MISSION CONTROL PANEL
+           <ShieldCheck size={14} /> MISSION CONTROL GATEWAY
         </div>
       </div>
       <header className="max-w-7xl mx-auto mb-16">
-        <h1 className="text-5xl md:text-8xl font-black font-sporty uppercase italic leading-none tracking-tighter">
-          OPERATIONAL <span className="text-purple-600">INTEL</span>
+        <h1 className="text-4xl md:text-6xl font-black font-sporty uppercase italic leading-none tracking-tighter text-white neon-glow">
+          <span className="text-purple-400">OPERATIONAL</span> <span className="text-purple-600">INTEL</span>
         </h1>
-        <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.5em] mt-4 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span>
+        <p className="text-purple-300 font-bold uppercase text-[10px] tracking-[0.5em] mt-4 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping"></span>
           Validating Network Registrations & Access Requests
         </p>
       </header>
@@ -90,19 +90,19 @@ const OrganizerDashboard = () => {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 w-full">
                   <div className="space-y-1">
-                    <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Identify</p>
-                    <p className="text-xs font-black uppercase truncate">{user.Name || 'Anonymous'}</p>
+                    <p className="text-[8px] font-black text-purple-300 uppercase tracking-widest">Identify</p>
+                    <p className="text-xs font-black uppercase text-purple-100 truncate">{user.Name || 'Anonymous'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Student ID</p>
+                    <p className="text-[8px] font-black text-purple-300 uppercase tracking-widest">Student ID</p>
                     <p className="text-xs font-black uppercase text-purple-400">{user.StudentID || 'N/A'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Stream/Year</p>
-                    <p className="text-xs font-black uppercase">{user.Stream} - {user.Year}</p>
+                    <p className="text-[8px] font-black text-purple-300 uppercase tracking-widest">Stream/Year</p>
+                    <p className="text-xs font-black uppercase text-purple-100">{user.Stream} - {user.Year}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Status</p>
+                    <p className="text-[8px] font-black text-purple-300 uppercase tracking-widest">Status</p>
                     <span className={`text-[9px] font-black px-3 py-1 rounded-lg border ${
                       user.Status === 'Approved' ? 'border-green-500/50 text-green-500 bg-green-500/10' : 
                       user.Status === 'Rejected' ? 'border-red-500/50 text-red-500 bg-red-500/10' : 
@@ -159,7 +159,7 @@ const OrganizerDashboard = () => {
           >
             <button 
               onClick={() => setSelectedImage(null)} 
-              className="absolute top-10 right-10 p-4 bg-white text-black rounded-full hover:bg-purple-600 hover:text-white transition-all shadow-2xl"
+              className="absolute top-10 right-10 p-4 bg-slate-950/95 text-white rounded-full hover:bg-purple-600 hover:text-white transition-all shadow-2xl"
             >
               <X size={24} />
             </button>

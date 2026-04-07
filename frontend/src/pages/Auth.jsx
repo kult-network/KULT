@@ -81,7 +81,7 @@ const Auth = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md p-10 md:p-14 bg-white border border-gray-100 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] rounded-[50px] text-center relative z-10"
+        className="w-full max-w-md p-10 md:p-14 bg-slate-950/95 border border-white/10 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.55)] rounded-[50px] text-center relative z-10 glass-panel"
       >
         <div className="inline-flex p-5 bg-black text-white rounded-[25px] mb-8 shadow-2xl group hover:rotate-12 transition-transform">
           <Zap size={32} fill="white" className="group-hover:text-purple-400" />
@@ -98,7 +98,7 @@ const Auth = () => {
                 <input 
                   type="text" 
                   placeholder="FULL NAME" 
-                  className="w-full p-5 pl-14 bg-gray-50 rounded-[22px] font-bold outline-none uppercase text-xs focus:bg-white focus:ring-2 focus:ring-purple-500/20 transition-all border border-transparent focus:border-purple-500/30" 
+                  className="w-full p-5 pl-14 bg-slate-900 rounded-[22px] font-bold outline-none uppercase text-xs focus:bg-slate-800 focus:ring-2 focus:ring-purple-500/20 transition-all border border-transparent focus:border-purple-500/30" 
                   value={fullName} 
                   onChange={e => setFullName(e.target.value)} 
                   required 
@@ -113,7 +113,7 @@ const Auth = () => {
               <input 
                 type="email" 
                 placeholder="EMAIL ADDRESS" 
-                className="w-full p-5 pl-14 bg-gray-50 rounded-[22px] font-bold outline-none uppercase text-xs focus:bg-white focus:ring-2 focus:ring-purple-500/20 transition-all border border-transparent focus:border-purple-500/30" 
+                className="w-full p-5 pl-14 bg-slate-900 rounded-[22px] font-bold outline-none uppercase text-xs focus:bg-slate-800 focus:ring-2 focus:ring-purple-500/20 transition-all border border-transparent focus:border-purple-500/30" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 required 
@@ -127,7 +127,7 @@ const Auth = () => {
               <input 
                 type="password" 
                 placeholder="PASSWORD" 
-                className="w-full p-5 pl-14 bg-gray-50 rounded-[22px] font-bold outline-none uppercase text-xs focus:bg-white focus:ring-2 focus:ring-purple-500/20 transition-all border border-transparent focus:border-purple-500/30" 
+                className="w-full p-5 pl-14 bg-slate-900 rounded-[22px] font-bold outline-none uppercase text-xs focus:bg-slate-800 focus:ring-2 focus:ring-purple-500/20 transition-all border border-transparent focus:border-purple-500/30" 
                 value={password} 
                 onChange={e => setPassword(e.target.value)} 
                 required 

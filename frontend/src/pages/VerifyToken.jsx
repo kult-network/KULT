@@ -82,7 +82,7 @@ const VerifyToken = () => {
               autoFocus
             />
           </div>
-          <button type="submit" disabled={loading} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-[30px] hover:bg-purple-600 hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50">
+          <button type="submit" disabled={loading} className="w-full py-6 bg-purple-600 text-white font-black uppercase italic rounded-[30px] hover:bg-violet-500 transition-all shadow-2xl flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50">
             {loading ? <Loader2 className="animate-spin" /> : <>ACTIVATE CLEARANCE <Zap size={20} fill="currentColor" /></>}
           </button>
         </form>

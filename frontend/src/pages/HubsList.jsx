@@ -34,6 +34,13 @@ const HubsList = ({ user }) => {
 
   const _navigate = useNavigate();
 
+  const getHubAbbreviation = (name) => {
+    if (!name) return "HUB";
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) return name.substring(0, 3).toUpperCase();
+    return words.map(word => word[0]).join('').toUpperCase();
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -89,38 +96,40 @@ const HubsList = ({ user }) => {
     } catch (e) { console.error("❌ Vote Error:", e.message); }
   };
 
-  if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[var(--body-bg)] font-sporty font-black text-[var(--text-secondary)] uppercase overflow-hidden">
-      <span className="text-[10vw] animate-pulse">SYNCING...</span>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[var(--body-bg)] font-sharp pb-20 selection:bg-purple-600 selection:text-white text-[var(--text-primary)]">
 
-      <main className="max-w-7xl mx-auto px-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* HEADER SECTION */}
         <header className="mb-20 px-2">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
             <p className="text-[10px] font-black tracking-[0.5em] text-[var(--accent-color)] uppercase">{systemMsg}</p>
           </div>
-          <h1 className="text-[4.5rem] md:text-[9rem] font-black font-sporty tracking-tighter uppercase leading-[0.8] mb-4">
-            NETWORK <span className="text-[var(--accent-color)] italic">GATEWAY</span>
+          <h1 className="text-[2.8rem] sm:text-[3.4rem] md:text-[5.8rem] font-black font-sporty tracking-tight uppercase leading-[0.95] mb-4 text-gradient max-w-4xl">
+            NETWORK <span className="text-gradient italic">ACCESS</span>
           </h1>
+          {loading && (
+            <div className="mt-8 rounded-[40px] border border-white/10 bg-slate-950/80 shadow-2xl p-16 text-center text-white/80">
+              <div className="inline-flex items-center justify-center gap-3 mb-4 text-sm font-black uppercase tracking-[0.35em]">
+                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" /> LOADING HUB GRID...
+              </div>
+              <p className="text-sm text-gray-400">The hub feed is initializing in the background. Stay ready.</p>
+            </div>
+          )}
         </header>
 
         {/* PULSE & VIBE CHECK SECTION */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-24 px-2">
 
           {/* NETWORK PULSE */}
-          <div className="lg:col-span-2 bg-[#0a0a0a] text-white p-10 rounded-[50px] border border-white/5 relative overflow-hidden shadow-2xl">
+          <div className="lg:col-span-2 ambient-card text-white p-10 rounded-[50px] relative overflow-hidden">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <Activity size={18} className="text-green-500 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">Network Pulse Feed</span>
+                <Activity size={18} className="text-green-400 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Network Pulse Feed</span>
               </div>
-              <TrendingUp size={16} className="text-gray-700" />
+              <TrendingUp size={16} className="text-gray-400" />
             </div>
             <div className="space-y-5 max-h-[300px] overflow-y-auto pr-4">
               {activities.length > 0 ? activities.map((act, i) => (
@@ -133,13 +142,13 @@ const HubsList = ({ user }) => {
           </div>
 
           {/* VIBE CHECK (POLLS) */}
-          <div className="bg-[var(--accent-color)] p-10 rounded-[50px] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between">
+          <div className="ambient-card p-10 rounded-[50px] text-white relative overflow-hidden flex flex-col justify-between border border-[rgba(255,255,255,0.12)]">
             <div>
               <div className="flex items-center gap-3 mb-8">
-                <MessageSquare size={18} fill="white" />
+                <MessageSquare size={18} className="text-cyan-200" />
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Vibe Check</span>
               </div>
-              <h3 className="text-3xl font-black uppercase italic leading-tight mb-10">
+              <h3 className="text-3xl font-black uppercase italic leading-tight mb-10 text-white/90">
                 {activePoll ? activePoll.Question : "NO ACTIVE MISSION"}
               </h3>
             </div>
@@ -177,25 +186,34 @@ const HubsList = ({ user }) => {
 
         {/* HUBS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-2">
-          {hubs.length > 0 ? hubs.map((hub, index) => {
+          {loading ? (
+            <div className="col-span-full py-40 text-center opacity-80">
+              <div className="inline-flex items-center justify-center gap-3 mb-4 text-lg font-black uppercase tracking-[0.2em] text-white">
+                <span className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" /> LOADING HUBS...
+              </div>
+              <p className="text-sm text-gray-400">This area will populate as soon as your hub data arrives.</p>
+            </div>
+          ) : hubs.length > 0 ? hubs.map((hub, index) => {
             const color = HUB_COLORS[index % HUB_COLORS.length];
             return (
               <motion.div key={hub.id || hub.Id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
                 <Link to={`/hub/${hub.id || hub.Id}`}>
-                  <div className={`p-10 h-[500px] bg-[var(--card-bg)] rounded-[60px] border-2 border-[var(--border-color)] shadow-xl shadow-[0_40px_80px_-20px_var(--shadow-color)] flex flex-col justify-between overflow-hidden group hover:${color.shadow} transition-all`}>
-                    <div>
-                      <div className="flex justify-between mb-10">
-                        <div className={`w-16 h-16 rounded-[24px] ${color.light} flex items-center justify-center`}>
+                  <div className={`p-8 md:p-10 min-h-[520px] md:h-[500px] bg-[var(--card-bg)] rounded-[40px] md:rounded-[60px] border-2 border-[var(--border-color)] shadow-xl shadow-[0_40px_80px_-20px_var(--shadow-color)] flex flex-col justify-between overflow-hidden group hover:${color.shadow} transition-all`}>
+                    <div className="flex flex-col gap-4 flex-1 overflow-hidden">
+                      <div className="flex justify-between gap-4 flex-shrink-0">
+                        <div className={`w-16 h-16 rounded-[24px] ${color.light} flex items-center justify-center flex-shrink-0`}>
                           <Globe size={28} className={color.text} />
                         </div>
-                        <span className={`text-[8px] font-black uppercase px-4 py-2 ${color.bg} text-white rounded-full`}>LIVE</span>
+                        <span className={`text-[8px] font-black uppercase px-3 py-2 ${color.bg} text-white rounded-full flex-shrink-0`}>LIVE</span>
                       </div>
-                      <h3 className="text-4xl font-black font-sporty uppercase group-hover:text-[var(--accent-color)]">{hub.Name}</h3>
-                      <p className="text-[11px] font-bold text-[var(--text-secondary)] mt-4 italic">{hub.Tagline}</p>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-3xl font-black font-sporty uppercase text-white group-hover:text-[var(--accent-color)] transition-colors line-clamp-3 break-words">{getHubAbbreviation(hub.Name)}</h3>
+                        <p className="text-[11px] font-bold text-[var(--text-secondary)] mt-3 line-clamp-2">{hub.Tagline}</p>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Gateway Access</span>
-                      <div className={`w-14 h-14 ${color.bg} text-white rounded-[22px] flex items-center justify-center group-hover:translate-x-2 transition-transform`}><ArrowRight size={24} /></div>
+                    <div className="flex justify-between items-center gap-4 flex-shrink-0 mt-4">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] flex-1 truncate">Gateway Access</span>
+                      <div className={`w-14 h-14 ${color.bg} text-white rounded-[22px] flex items-center justify-center group-hover:translate-x-2 transition-transform flex-shrink-0`}><ArrowRight size={24} /></div>
                     </div>
                   </div>
                 </Link>
@@ -203,8 +221,8 @@ const HubsList = ({ user }) => {
             );
           }) : (
             <div className="col-span-full py-40 text-center opacity-20">
-              <Zap size={64} className="mx-auto mb-4" />
-              <p className="font-black text-2xl uppercase tracking-widest">No Nodes Found</p>
+              <Zap size={64} className="mx-auto mb-4 text-purple-400" />
+              <p className="font-black text-2xl uppercase tracking-widest text-purple-300">No Nodes Found</p>
             </div>
           )}
         </div>

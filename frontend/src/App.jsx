@@ -27,6 +27,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null); 
   const [loading, setLoading] = useState(true);
+  const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
   const navigate = useNavigate();
   const handleLogout = async () => {
     try {
@@ -84,13 +85,41 @@ function App() {
         setUser(null);
         setRole('GUEST'); 
       }
-      setLoading(false); 
+      // Don't set loading false here, let minimum time control it
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (minLoadingTimePassed) {
+      setLoading(false);
+    }
+  }, [minLoadingTimePassed]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMinLoadingTimePassed(true), 2000); // Minimum 2 seconds loading
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (minLoadingTimePassed) {
+      setLoading(false);
+    }
+  }, [minLoadingTimePassed]);
+
   if (loading) return (
-    <div className="h-screen flex items-center justify-center font-black text-purple-600 animate-pulse uppercase tracking-[0.5em] text-2xl bg-[var(--body-bg)]">
-      Syncing Neural Identity...
+    <div className="h-screen flex items-center justify-center bg-[var(--body-bg)]">
+      <div className="loader-ring">
+        <div className="loader-orbit loader-orbit--one">
+          <div className="loader-orbit loader-orbit--two">
+            <div className="loader-center">
+              <div className="loader-node loader-node--a"></div>
+              <div className="loader-node loader-node--b"></div>
+              <div className="loader-node loader-node--c"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
   return (
@@ -119,11 +148,6 @@ function App() {
           <Route path="/create-event" element={
             <RoleProtectedRoute user={user} role={role} allowedRoles={['ORGANIZER', 'SUPERVISOR']}>
               <CreateEvent />
-            </RoleProtectedRoute>
-          } />
-          <Route path="/organizer-dashboard/:eventId" element={
-            <RoleProtectedRoute user={user} role={role} allowedRoles={['ORGANIZER', 'SUPERVISOR']}>
-              <OrganizerDashboard />
             </RoleProtectedRoute>
           } />
           <Route path="/supervisor" element={

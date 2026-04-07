@@ -21,36 +21,36 @@ const CreateHub = () => {
   return (
     <div className="min-h-screen bg-[var(--body-bg)] p-12 font-sharp text-[var(--text-primary)]">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-black text-[10px] tracking-widest uppercase text-gray-400 mb-12">
-        <ArrowLeft size={16} /> BACK TO PANEL
+        <ArrowLeft size={16} /> BACK TO GATEWAY
       </button>
-      <div className="max-w-xl mx-auto bg-white p-10 rounded-[40px] shadow-2xl border border-gray-50">
-        <h1 className="text-4xl font-black font-sporty uppercase mb-8">INITIATE <span className="text-purple-600">HUB</span></h1>
+      <div className="max-w-xl mx-auto bg-slate-950/95 p-10 rounded-[40px] shadow-2xl border border-white/10">
+        <h1 className="text-4xl font-black font-sporty uppercase mb-8 text-white">INITIATE <span className="text-purple-400">HUB</span></h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-gray-400 ml-2 tracking-widest">Campus Name</label>
-            <div className="flex items-center bg-gray-50 rounded-2xl p-4 gap-3">
-              <Globe size={18} className="text-purple-600" />
-              <input type="text" placeholder="e.g. LPU CENTRAL" className="bg-transparent w-full outline-none font-bold uppercase text-xs" 
+            <div className="flex items-center bg-slate-900/70 rounded-2xl p-4 gap-3">
+              <Globe size={18} className="text-purple-400" />
+              <input type="text" placeholder="e.g. LPU CENTRAL" className="bg-transparent w-full outline-none font-bold uppercase text-xs text-white" 
                 onChange={e => setFormData({...formData, Name: e.target.value})} required />
             </div>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-gray-400 ml-2 tracking-widest">Physical Location</label>
-            <div className="flex items-center bg-gray-50 rounded-2xl p-4 gap-3">
-              <MapPin size={18} className="text-purple-600" />
-              <input type="text" placeholder="e.g. PUNJAB, INDIA" className="bg-transparent w-full outline-none font-bold uppercase text-xs" 
+            <div className="flex items-center bg-slate-900/70 rounded-2xl p-4 gap-3">
+              <MapPin size={18} className="text-purple-400" />
+              <input type="text" placeholder="e.g. PUNJAB, INDIA" className="bg-transparent w-full outline-none font-bold uppercase text-xs text-white" 
                 onChange={e => setFormData({...formData, Location: e.target.value})} required />
             </div>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-gray-400 ml-2 tracking-widest">Hub Tagline</label>
-            <div className="flex items-center bg-gray-50 rounded-2xl p-4 gap-3">
-              <Info size={18} className="text-purple-600" />
-              <input type="text" placeholder="e.g. THE VIBE CENTRAL" className="bg-transparent w-full outline-none font-bold uppercase text-xs" 
+            <div className="flex items-center bg-slate-900/70 rounded-2xl p-4 gap-3">
+              <Info size={18} className="text-purple-400" />
+              <input type="text" placeholder="e.g. THE VIBE CENTRAL" className="bg-transparent w-full outline-none font-bold uppercase text-xs text-white" 
                 onChange={e => setFormData({...formData, Tagline: e.target.value})} />
             </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full py-5 bg-black text-white font-black uppercase rounded-2xl hover:bg-purple-600 transition-all shadow-xl flex items-center justify-center gap-2">
+          <button type="submit" disabled={loading} className="w-full py-5 bg-purple-600 text-white font-black uppercase rounded-2xl hover:bg-violet-500 transition-all shadow-xl flex items-center justify-center gap-2">
             {loading ? "SYNCING..." : "ACTIVATE GATEWAY"} <Zap size={18} fill="white" />
           </button>
         </form>

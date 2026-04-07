@@ -101,7 +101,6 @@ const HubDetails = ({ user, role }) => {
       ));
     } catch { return null; }
   };
-  if (loading) return <div className="h-screen flex items-center justify-center bg-white font-sporty font-black text-gray-200 text-[8vw] animate-pulse uppercase">Accessing Node...</div>;
   return (
     <div className="min-h-screen bg-[var(--body-bg)] relative font-sharp selection:bg-purple-600 selection:text-white pb-20 text-[var(--text-primary)]">
       <AnimatePresence>
@@ -139,7 +138,7 @@ const HubDetails = ({ user, role }) => {
                       <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4">Mission Timeline</p>
                       {renderItinerary(selectedEvent.Itinerary)}
                     </div>}
-                    <button onClick={() => setShowRegForm(true)} className="w-full py-6 bg-white text-black font-black font-sporty uppercase rounded-3xl hover:bg-purple-600 hover:text-white transition-all active:scale-95 shadow-xl">INITIALIZE ACCESS PROTOCOL</button>
+                    <button onClick={() => setShowRegForm(true)} className="w-full py-6 bg-slate-900/95 text-white font-black font-sporty uppercase rounded-3xl hover:bg-purple-600 hover:text-white transition-all active:scale-95 shadow-xl">INITIALIZE ACCESS PROTOCOL</button>
                   </>
                 ) : (
                   <form onSubmit={handleRegister} className="space-y-6 animate-in fade-in slide-in-from-right-4">
@@ -179,38 +178,55 @@ const HubDetails = ({ user, role }) => {
           </motion.div>
         )}
       </AnimatePresence>
-      <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 relative z-10">
         <div className="flex justify-between items-center mb-16 px-2">
-          <Link to="/" className="flex items-center gap-3 font-black text-[10px] tracking-[0.4em] text-gray-400 hover:text-black transition-all uppercase"><ArrowLeft size={16} /> Exit Command</Link>
+          <Link to="/" className="flex items-center gap-3 font-black text-[10px] tracking-[0.4em] text-purple-400 hover:text-purple-300 transition-all uppercase"><ArrowLeft size={16} /> Exit Command</Link>
           {(role?.toUpperCase() === 'ORGANIZER' || role?.toUpperCase() === 'SUPERVISOR') && (
             <Link to={`/create-event?hubId=${id}`} className="flex items-center gap-2 px-8 py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-600 shadow-xl transition-all active:scale-95"><Plus size={16} strokeWidth={3} /> Host Mission</Link>
           )}
         </div>
         <header className="mb-24 px-2">
-          <h1 className="text-[5rem] md:text-[9rem] font-black font-sporty tracking-tighter uppercase leading-[0.8] mb-8">{hubData?.Name || "CAMPUS"} <span className="text-purple-600 italic">HUB</span></h1>
-          <p className="text-[11px] font-black tracking-[0.5em] text-purple-600 uppercase border-l-4 border-black pl-6">{randomTag}</p>
+          <div className="flex flex-col gap-4">
+            <h1 className="text-[2.8rem] sm:text-[3.5rem] md:text-[6.5rem] font-black font-sporty tracking-tight uppercase leading-[0.95] mb-2 text-gradient max-w-5xl">
+              {hubData?.Name || "CAMPUS"} <span className="text-gradient italic">Hub</span>
+            </h1>
+            {loading ? (
+              <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] font-black tracking-[0.5em] uppercase text-gray-400 border-l-4 border-black pl-6">
+                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" /> SYNCING HUB DATA...
+              </span>
+            ) : (
+              <p className="text-[10px] sm:text-[11px] font-black tracking-[0.5em] text-purple-600 uppercase border-l-4 border-black pl-6">{randomTag}</p>
+            )}
+          </div>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-2">
-          {events.length > 0 ? events.map((event, index) => {
+          {loading ? (
+            <div className="col-span-full rounded-[40px] md:rounded-[60px] border border-white/10 bg-slate-950/80 shadow-2xl p-16 text-center text-white/80">
+              <div className="mb-4 inline-flex items-center justify-center gap-3 text-lg font-black uppercase tracking-[0.2em]">
+                <span className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" /> LOADING HUB NODES...
+              </div>
+              <p className="text-sm text-gray-400">The mission grid is powering up. This will be ready in a moment.</p>
+            </div>
+          ) : events.length > 0 ? events.map((event, index) => {
             const color = KULT_COLORS[index % KULT_COLORS.length];
             const posterUrl = event.Poster?.[0] ? (event.Poster[0].url || `https://app.nocodb.com${event.Poster[0].path}`) : null;
             return (
-              <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className={`bg-white rounded-[60px] border-2 border-gray-50 shadow-xl overflow-hidden hover:${color.shadow} transition-all group flex flex-col h-[650px] relative`}>
+              <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className={`bg-slate-950/95 rounded-[40px] md:rounded-[60px] border-2 border-white/10 shadow-2xl overflow-hidden hover:${color.shadow} transition-all group flex flex-col h-auto md:h-[650px] relative`}>
                 {(role?.toUpperCase() === 'ORGANIZER' || role?.toUpperCase() === 'SUPERVISOR') && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); navigate(`/organizer-dashboard/${event.id || event.Id}`); }}
-                    className="absolute top-6 right-20 z-50 p-3 bg-white/90 backdrop-blur-md rounded-xl text-black hover:bg-black hover:text-white transition-all shadow-lg border border-gray-100"
+                    className="absolute top-6 right-20 z-50 p-3 bg-slate-950/95 backdrop-blur-md rounded-xl text-white hover:bg-black hover:text-white transition-all shadow-lg border border-white/10"
                     title="Mission Dashboard"
                   >
                     <ShieldCheck size={18} />
                   </button>
                 )}
-                <div className="h-64 relative bg-gray-100 overflow-hidden">
+                <div className="h-52 md:h-64 relative bg-gray-100 overflow-hidden">
                   {posterUrl ? <img src={posterUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={40} /></div>}
                   <span className={`absolute top-6 left-6 text-[8px] font-black uppercase ${color.bg} text-white px-4 py-2 rounded-full tracking-widest shadow-lg`}>{event.Category}</span>
                 </div>
-                <div className="p-10 flex-grow flex flex-col">
-                  <h3 className="text-3xl font-black font-sporty uppercase leading-none tracking-tighter mb-6 group-hover:text-purple-600 transition-colors line-clamp-2">{event.Title}</h3>
+                <div className="p-6 md:p-10 flex-grow flex flex-col">
+                  <h3 className="text-3xl font-black font-sporty uppercase leading-none tracking-tighter mb-6 text-white group-hover:text-purple-400 transition-colors line-clamp-2">{event.Title}</h3>
                   <div className={`border-l-4 ${color.border} pl-6 space-y-3 mb-10`}>
                     <p className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2"><Ticket size={14} className={color.text}/> {event.Price === 'PAID' ? 'PAID MISSION' : 'FREE ACCESS'}</p>
                     <p className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2"><User size={14} className={color.text}/> {event.Speaker}</p>
@@ -222,7 +238,7 @@ const HubDetails = ({ user, role }) => {
               </motion.div>
             );
           }) : (
-            <div className="col-span-full py-32 text-center opacity-20"><p className="font-sporty text-5xl uppercase tracking-[0.2em]">Zero Signals</p></div>
+            <div className="col-span-full py-32 text-center opacity-20"><p className="font-sporty text-5xl uppercase tracking-[0.2em] text-purple-300">Zero Signals</p></div>
           )}
         </div>
         {role?.toUpperCase() === 'USER' && (
@@ -233,7 +249,7 @@ const HubDetails = ({ user, role }) => {
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-[0.3em] max-w-xl">Request administrative clearance to host missions in this hub node.</p>
               </div>
               <div className="mt-10 lg:mt-0 flex flex-col sm:flex-row gap-6">
-                <a href={`mailto:support.kult@gmail.com?subject=KULT Node Access`} className="px-12 py-7 bg-white text-black rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3"><Mail size={20}/> Request Command</a>
+                <a href={`mailto:support.kult@gmail.com?subject=KULT Node Access`} className="px-12 py-7 bg-slate-900/95 text-white rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3"><Mail size={20}/> Request Command</a>
                 <Link to="/verify-token" className="px-12 py-7 bg-white/5 border border-white/10 rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3"><Key size={20}/> Enter Token</Link>
               </div>
             </div>
