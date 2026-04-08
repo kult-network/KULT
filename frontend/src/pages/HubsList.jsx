@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
   Globe, Zap, ArrowRight, Activity,
   MessageSquare, MapPin, Users, Calendar, Clock,
-  Building2
+  Building2, Megaphone
 } from 'lucide-react';
 
 const HubsList = ({ user, role }) => {
