@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './firebase';
 import axios from 'axios';
 import { API_BASE_URL } from './config/api';
 import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import AnnouncementPopup from './components/AnnouncementPopup';
+import Kultist from './components/Chatbot';
 import HubsList from './pages/HubsList';
 import HubDetails from './pages/HubDetails';
 import Auth from './pages/Auth';
@@ -14,6 +15,9 @@ import VerifyToken from './pages/VerifyToken';
 import SupervisorPanel from './pages/SupervisorPanel'; 
 import Onboarding from './pages/Onboarding';
 import OrganizerDashboard from './pages/OrganizerDashboard';
+
+import { motion, AnimatePresence } from 'framer-motion';
+
 const RoleProtectedRoute = ({ children, user, role, allowedRoles }) => {
   if (!user) return <Navigate to="/auth" />;
   const userRole = role?.toUpperCase();
@@ -23,20 +27,55 @@ const RoleProtectedRoute = ({ children, user, role, allowedRoles }) => {
   }
   return children;
 };
+
 function App() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null); 
   const [loading, setLoading] = useState(true);
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
+
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      const token = localStorage.getItem('kult_token');
+      if (token) {
+        await axios.post(`${API_BASE_URL}/api/auth/logout`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem('kult_token');
+      localStorage.removeItem('kult_user');
+      setUser(null);
+      setRole(null);
       window.location.reload(); 
-    } catch (error) {
-      console.error("❌ Logout Failed:", error.message);
     }
   };
+
+  useEffect(() => {
+    const fetchAllNotifications = async () => {
+      try {
+        const NOCO_URL = "https://app.nocodb.com/api/v2/tables/mvxwc3h19a4a0jw/records";
+        const NOCO_TOKEN = "nc_pat_mbLxWvXasyq6MXSzFGfGUZvM5VWFSxdvPY-f-Ymk";
+        const res = await axios.get(NOCO_URL, {
+          headers: { 'xc-token': NOCO_TOKEN }
+        });
+        if (res.data && res.data.list) {
+          setNotifications(res.data.list);
+        }
+      } catch (err) {
+        console.error("Global notification fetch error:", err);
+      }
+    };
+    fetchAllNotifications();
+    const interval = setInterval(fetchAllNotifications, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const colorPalettes = [
       { primary: '#111827', secondary: '#374151', accent: '#7c3aed', accentBg: 'rgba(124, 58, 237, 0.08)', accentBorder: 'rgba(124, 58, 237, 0.24)', shadow: 'rgba(124, 58, 237, 0.16)', border: '#ddd6fe' },
@@ -66,28 +105,35 @@ function App() {
     root.setProperty('--border', palette.border);
     root.setProperty('--text-h', palette.primary);
     root.setProperty('--bg-soft', 'rgba(248, 250, 252, 1)');
+  }, []);
 
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        setUser(u); 
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('kult_token');
+      const storedUser = localStorage.getItem('kult_user');
+      
+      if (token && storedUser) {
         try {
-          const res = await axios.get(`${API_BASE_URL}/api/user-role/${u.email}`);
-          if (res.data && res.data.Role) {
-            setRole(res.data.Role.toUpperCase());
+          const res = await axios.get(`${API_BASE_URL}/api/auth/verify`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (res.data.valid) {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+            setRole(res.data.user.role || userData.role || 'USER');
           } else {
-            setRole('USER');
+            localStorage.removeItem('kult_token');
+            localStorage.removeItem('kult_user');
           }
         } catch (err) {
-          console.error("Role Sync Error:", err);
-          setRole('USER'); 
+          localStorage.removeItem('kult_token');
+          localStorage.removeItem('kult_user');
         }
-      } else {
-        setUser(null);
-        setRole('GUEST'); 
       }
-      // Don't set loading false here, let minimum time control it
-    });
-    return () => unsubscribe();
+    };
+    
+    checkAuth();
   }, []);
 
   useEffect(() => {
@@ -97,73 +143,93 @@ function App() {
   }, [minLoadingTimePassed]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setMinLoadingTimePassed(true), 2000); // Minimum 2 seconds loading
+    const timer = setTimeout(() => setMinLoadingTimePassed(true), 2000);
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (minLoadingTimePassed) {
-      setLoading(false);
-    }
-  }, [minLoadingTimePassed]);
-
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-[var(--body-bg)]">
-      <div className="loader-ring">
-        <div className="loader-orbit loader-orbit--one">
-          <div className="loader-orbit loader-orbit--two">
-            <div className="loader-center">
-              <div className="loader-node loader-node--a"></div>
-              <div className="loader-node loader-node--b"></div>
-              <div className="loader-node loader-node--c"></div>
+  return (
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <motion.div 
+          key="loader"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+          className="h-screen flex items-center justify-center bg-[#050505] z-[9999] fixed inset-0"
+        >
+          <div className="loader-ring">
+            <div className="loader-orbit loader-orbit--one">
+              <div className="loader-orbit loader-orbit--two">
+                <div className="loader-center">
+                  <div className="loader-node loader-node--a"></div>
+                  <div className="loader-node loader-node--b"></div>
+                  <div className="loader-node loader-node--c"></div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-  return (
-    <div className="min-h-screen bg-[var(--body-bg)] flex flex-col text-[var(--text-primary)]">
-      <Header 
-        user={user} 
-        role={role} 
-        handleLogout={handleLogout} 
-        navigate={navigate} 
-      />
-      <main className="flex-1 pt-20">
-        <Routes>
-          <Route path="/" element={<HubsList user={user} role={role} handleLogout={handleLogout} />} />
-          <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/hub/:id" element={
-            <RoleProtectedRoute user={user} role={role}>
-              <HubDetails user={user} role={role} />
-            </RoleProtectedRoute>
-          } />
-          <Route path="/verify-token" element={
-            <RoleProtectedRoute user={user} role={role}>
-              <VerifyToken />
-            </RoleProtectedRoute>
-          } />
-          <Route path="/create-event" element={
-            <RoleProtectedRoute user={user} role={role} allowedRoles={['ORGANIZER', 'SUPERVISOR']}>
-              <CreateEvent />
-            </RoleProtectedRoute>
-          } />
-          <Route path="/supervisor" element={
-            <RoleProtectedRoute user={user} role={role} allowedRoles={['SUPERVISOR']}>
-              <SupervisorPanel />
-            </RoleProtectedRoute>
-          } />
-          <Route path="/create-hub" element={
-            <RoleProtectedRoute user={user} role={role} allowedRoles={['SUPERVISOR']}>
-              <CreateHub />
-            </RoleProtectedRoute>
-          } />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </main>
-    </div>
+        </motion.div>
+      ) : (
+        <motion.div 
+          key="main-app"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+          className="min-h-screen bg-[var(--body-bg)] flex flex-col text-[var(--text-primary)]"
+        >
+          <Header 
+            user={user} 
+            role={role} 
+            handleLogout={handleLogout} 
+            navigate={navigate} 
+            onMenuClick={(shouldOpen) => setSidebarOpen(shouldOpen === undefined ? !sidebarOpen : shouldOpen)}
+            sidebarOpen={sidebarOpen}
+            notifications={notifications}
+          />
+          <AnnouncementPopup />
+          <Kultist />
+          <Sidebar 
+            isOpen={sidebarOpen} 
+            onClose={() => setSidebarOpen(false)}
+            user={user}
+            role={role}
+            notifications={notifications}
+          />
+          <main className="flex-1 pt-4 md:pt-8">
+            <Routes>
+              <Route path="/" element={<HubsList user={user} role={role} handleLogout={handleLogout} />} />
+              <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/hub/:id" element={
+                <RoleProtectedRoute user={user} role={role}>
+                  <HubDetails user={user} role={role} />
+                </RoleProtectedRoute>
+              } />
+              <Route path="/verify-token" element={
+                <RoleProtectedRoute user={user} role={role}>
+                  <VerifyToken />
+                </RoleProtectedRoute>
+              } />
+              <Route path="/create-event" element={
+                <RoleProtectedRoute user={user} role={role} allowedRoles={['ORGANIZER', 'SUPERVISOR']}>
+                  <CreateEvent />
+                </RoleProtectedRoute>
+              } />
+              <Route path="/supervisor" element={
+                <RoleProtectedRoute user={user} role={role} allowedRoles={['SUPERVISOR']}>
+                  <SupervisorPanel />
+                </RoleProtectedRoute>
+              } />
+              <Route path="/create-hub" element={
+                <RoleProtectedRoute user={user} role={role} allowedRoles={['SUPERVISOR']}>
+                  <CreateHub />
+                </RoleProtectedRoute>
+              } />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </main>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 export default App;

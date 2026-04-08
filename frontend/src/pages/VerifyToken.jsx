@@ -2,31 +2,39 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
-import { auth } from '../firebase';
 import { ShieldCheck, Zap, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Toast from '../components/Toast'; 
+
 const VerifyToken = () => {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
   const navigate = useNavigate();
+
   const showToast = (msg, type = 'success') => {
     setToast({ show: true, msg, type });
   };
+
   const handleVerify = async (e) => {
     e.preventDefault();
     const cleanToken = token.trim().toUpperCase();
     if (!cleanToken) return showToast("Bhai, token to daal!", "error");
+    
     setLoading(true);
     try {
-      const user = auth.currentUser;
+      const storedUser = localStorage.getItem('kult_user');
+      const userData = storedUser ? JSON.parse(storedUser) : null;
+      
       const res = await axios.post(`${API_BASE_URL}/api/verify-organizer`, {
-        email: user.email,
-        name: user.displayName || user.email.split('@')[0],
+        email: userData?.email,
+        name: userData?.name || userData?.email?.split('@')[0],
         token: cleanToken 
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('kult_token')}` }
       });
+      
       if (res.data.success) {
         showToast("ACCESS GRANTED: ROLE UPGRADED! 👑", "success");
         setSuccess(true);
@@ -41,6 +49,7 @@ const VerifyToken = () => {
       setLoading(false);
     }
   };
+
   if (success) {
     return (
       <div className="h-screen bg-black flex flex-col items-center justify-center text-center p-6 overflow-hidden">
@@ -55,6 +64,7 @@ const VerifyToken = () => {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sharp">
       <Toast isVisible={toast.show} message={toast.msg} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
@@ -94,4 +104,5 @@ const VerifyToken = () => {
     </div>
   );
 };
+
 export default VerifyToken;

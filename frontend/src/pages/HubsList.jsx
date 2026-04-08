@@ -5,56 +5,46 @@ import { API_BASE_URL } from '../config/api';
 import { motion } from 'framer-motion';
 import {
   Globe, Zap, ArrowRight, Activity,
-  MessageSquare, TrendingUp
+  MessageSquare, MapPin, Users, Calendar, Clock,
+  Building2
 } from 'lucide-react';
 
-const RANDOM_TAGLINES = [
-  "SYSTEM CONFIGURATION: OPTIMAL", "NEURAL NETWORK SYNCED",
-  "SCANNING CAMPUS NODES...", "WELCOME TO THE KULT ECOSYSTEM",
-  "ENCRYPTED GATEWAY ACTIVE", "ACCESSING ACADEMIC GRID",
-  "PROTOCOLS INITIALIZED"
-];
-
-const HUB_COLORS = [
-  { bg: "bg-purple-600", text: "text-purple-600", light: "bg-purple-50", border: "border-purple-100", shadow: "shadow-purple-200" },
-  { bg: "bg-blue-600", text: "text-blue-600", light: "bg-blue-50", border: "border-blue-100", shadow: "shadow-blue-200" },
-  { bg: "bg-pink-600", text: "text-pink-600", light: "bg-pink-50", border: "border-pink-100", shadow: "shadow-pink-200" },
-  { bg: "bg-cyan-500", text: "text-cyan-500", light: "bg-cyan-50", border: "border-cyan-100", shadow: "shadow-cyan-200" },
-  { bg: "bg-orange-500", text: "text-orange-500", light: "bg-orange-50", border: "border-orange-100", shadow: "shadow-orange-200" },
-  { bg: "bg-emerald-500", text: "text-emerald-500", light: "bg-emerald-50", border: "border-emerald-100", shadow: "shadow-emerald-200" },
-];
-
-const HubsList = ({ user }) => {
+const HubsList = ({ user, role }) => {
   const [hubs, setHubs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [systemMsg] = useState(() => RANDOM_TAGLINES[Math.floor(Math.random() * RANDOM_TAGLINES.length)]);
   const [activities, setActivities] = useState([]);
   const [activePoll, setActivePoll] = useState(null);
   const [voted, setVoted] = useState(false);
+  const [featuredEvent, setFeaturedEvent] = useState(null);
+  const [featuredIntel, setFeaturedIntel] = useState(null);
+  const [showCommunitiesGlow, setShowCommunitiesGlow] = useState(false);
+  const navigate = useNavigate();
 
-  const _navigate = useNavigate();
-
-  const getHubAbbreviation = (name) => {
-    if (!name) return "HUB";
-    const words = name.trim().split(/\s+/);
-    if (words.length === 1) return name.substring(0, 3).toUpperCase();
-    return words.map(word => word[0]).join('').toUpperCase();
-  };
+  // Check URL params for scroll-to-communities
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('scroll') === 'communities') {
+      setShowCommunitiesGlow(!featuredEvent);
+      setTimeout(() => {
+        const communitiesSection = document.getElementById('communities-section');
+        if (communitiesSection) {
+          communitiesSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [featuredEvent]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const resHubs = await axios.get(`${API_BASE_URL}/api/hubs`);
         const data = resHubs.data.list || resHubs.data;
-        const parsedHubs = Array.isArray(data) ? data : [];
-        setHubs(parsedHubs);
-        console.log(`🔒 GATEWAY OVERRIDE: Forcing hubs visible for everyone. Hubs loaded: ${parsedHubs.length}`);
-      } catch {
-        setHubs([]);
+        setHubs(Array.isArray(data) ? data : []);
+      } catch (err) {
         console.error("Failed to fetch hubs");
+        setHubs([]);
       }
 
-      // Add a tiny delay to respect rate limits
       await new Promise(r => setTimeout(r, 200));
       try {
         const resAct = await axios.get(`${API_BASE_URL}/api/activity`);
@@ -76,11 +66,33 @@ const HubsList = ({ user }) => {
         console.error("Poll fetch failed");
       }
 
+      // Fetch featured event
+      try {
+        const resFeatured = await axios.get(`${API_BASE_URL}/api/featured-event`);
+        setFeaturedEvent(resFeatured.data);
+      } catch (err) {
+        console.error("Failed to fetch featured event:", err);
+      }
+
+      // Fetch latest intel (Featured Intel)
+      try {
+        const resIntel = await axios.get(`${API_BASE_URL}/api/notifications`);
+        const intelData = resIntel.data || [];
+        if (intelData.length > 0) {
+          // Look for one explicitly marked as featured
+          const featured = intelData.find(n => n.Featured === true || n.Featured === 'true');
+          // Fallback to the latest one if none marked
+          setFeaturedIntel(featured || intelData[0]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch featured intel:", err);
+      }
+
       setLoading(false);
     };
 
     fetchData();
-  }, [user]);
+  }, []);
 
   const handleVote = async (option) => {
     if (!activePoll || voted) return;
@@ -93,140 +105,375 @@ const HubsList = ({ user }) => {
         const updated = await axios.get(`${API_BASE_URL}/api/polls/active`);
         setActivePoll(updated.data);
       }
-    } catch (e) { console.error("❌ Vote Error:", e.message); }
+    } catch (e) { console.error("Vote Error:", e.message); }
+  };
+
+  // Format date for display
+  const formatEventDate = (dateString) => {
+    if (!dateString) return 'Date TBA';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+    } catch {
+      return 'Date TBA';
+    }
+  };
+
+  // Format time for display
+  const formatEventTime = (dateString) => {
+    if (!dateString) return 'Time TBA';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch {
+      return 'Time TBA';
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--body-bg)] font-sharp pb-20 selection:bg-purple-600 selection:text-white text-[var(--text-primary)]">
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* HEADER SECTION */}
-        <header className="mb-20 px-2">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-            <p className="text-[10px] font-black tracking-[0.5em] text-[var(--accent-color)] uppercase">{systemMsg}</p>
-          </div>
-          <h1 className="text-[2.8rem] sm:text-[3.4rem] md:text-[5.8rem] font-black font-sporty tracking-tight uppercase leading-[0.95] mb-4 text-gradient max-w-4xl">
-            NETWORK <span className="text-gradient italic">ACCESS</span>
-          </h1>
-          {loading && (
-            <div className="mt-8 rounded-[40px] border border-white/10 bg-slate-950/80 shadow-2xl p-16 text-center text-white/80">
-              <div className="inline-flex items-center justify-center gap-3 mb-4 text-sm font-black uppercase tracking-[0.35em]">
-                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" /> LOADING HUB GRID...
+    <div className="min-h-screen bg-[#0B0B0F] pb-20 overflow-x-hidden">
+      <main className="max-w-6xl mx-auto px-6 sm:px-8 md:px-12 py-4 md:py-8 w-full">
+        
+        {/* Hero Section - Only show if supervisor has set a featured event */}
+        <section className="mb-8 md:mb-12">
+          {featuredEvent && featuredEvent.Title ? (
+            <div className="card-hero relative overflow-hidden rounded-2xl md:rounded-3xl p-5 md:p-8 lg:p-12">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-transparent to-blue-600/20"></div>
+              <div className="absolute top-0 right-0 w-32 md:w-48 lg:w-64 h-32 md:h-48 lg:h-64 bg-purple-500/20 rounded-full blur-2xl md:blur-3xl"></div>
+              <div className="relative z-10">
+                <span className="inline-block px-2 md:px-3 py-1 bg-purple-500/20 text-purple-300 text-[10px] md:text-xs font-medium rounded-full mb-3 md:mb-4">
+                  Featured Event
+                </span>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-3">
+                  {featuredEvent.Title}
+                </h1>
+                <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-6 max-w-full md:max-w-xl">
+                  {featuredEvent.Description ? featuredEvent.Description.substring(0, 120) + '...' : 'Join us for an exciting event'}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-4 md:mb-6">
+                  <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-gray-400">
+                    <Calendar size={14} md:size={16} />
+                    <span>{formatEventDate(featuredEvent.start_time)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-gray-400">
+                    <Clock size={14} md:size={16} />
+                    <span>{formatEventTime(featuredEvent.start_time)}</span>
+                  </div>
+                  {featuredEvent.Price && (
+                    <span className={`px-2 py-0.5 md:py-1 rounded-md text-[10px] md:text-xs font-medium ${
+                      featuredEvent.Price === 'Free' || featuredEvent.Price === 'FREE' 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {featuredEvent.Price}
+                    </span>
+                  )}
+                </div>
+                <button 
+                  onClick={() => {
+                    const hubId = featuredEvent.Hubs?.[0]?.Id || featuredEvent.Hubs?.[0]?.id;
+                    if (hubId) {
+                      navigate(`/hub/${hubId}?event=${featuredEvent.Id || featuredEvent.id}`);
+                    } else {
+                      navigate(`/?event=${featuredEvent.Id || featuredEvent.id}`);
+                    }
+                  }}
+                  className="px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm md:text-base font-semibold rounded-lg md:rounded-xl hover:opacity-90 transition-opacity w-full sm:w-auto"
+                >
+                  Register Now
+                </button>
               </div>
-              <p className="text-sm text-gray-400">The hub feed is initializing in the background. Stay ready.</p>
+            </div>
+          ) : (
+            <div 
+              onClick={() => {
+                const communitiesSection = document.getElementById('communities-section');
+                if (communitiesSection) {
+                  communitiesSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+              className="card-hero relative overflow-hidden rounded-2xl md:rounded-3xl p-5 md:p-8 lg:p-12 text-center cursor-pointer hover:border-purple-500/40 transition-all border border-transparent"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-transparent to-blue-600/20"></div>
+              <div className="absolute top-0 right-0 w-32 md:w-48 lg:w-64 h-32 md:h-48 lg:h-64 bg-purple-500/10 rounded-full blur-2xl md:blur-3xl"></div>
+              <div className="relative z-10">
+                <span className="inline-block px-2 md:px-3 py-1 bg-purple-500/20 text-purple-300 text-[10px] md:text-xs font-medium rounded-full mb-3 md:mb-4">
+                  Welcome
+                </span>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-3">
+                  Discover Events
+                </h1>
+                <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-6 max-w-full md:max-w-xl mx-auto">
+                  Browse upcoming events and join communities that match your interests
+                </p>
+                <div className="flex items-center justify-center gap-2 text-purple-400 text-xs md:text-sm">
+                  <span>Click to browse communities</span>
+                  <ArrowRight size={14} className="animate-bounce" />
+                </div>
+              </div>
             </div>
           )}
-        </header>
+        </section>
 
-        {/* PULSE & VIBE CHECK SECTION */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-24 px-2">
-
-          {/* NETWORK PULSE */}
-          <div className="lg:col-span-2 ambient-card text-white p-10 rounded-[50px] relative overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <Activity size={18} className="text-green-400 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Network Pulse Feed</span>
-              </div>
-              <TrendingUp size={16} className="text-gray-400" />
-            </div>
-            <div className="space-y-5 max-h-[300px] overflow-y-auto pr-4">
-              {activities.length > 0 ? activities.map((act, i) => (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={i} className="flex items-center gap-4 text-[11px] font-bold border-b border-white/5 pb-4 last:border-0 hover:translate-x-2 transition-transform">
-                  <div className="w-1.5 h-1.5 bg-purple-600 rounded-full shadow-[0_0_8px_#9333ea]"></div>
-                  <span className="uppercase tracking-wider text-gray-300">{act.Log}</span>
+        {/* Communities Grid */}
+        <section id="communities-section" className={`mb-12 ${showCommunitiesGlow ? 'animate-pulse-glow' : ''}`}>
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6 text-center">Browse Communities</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-4">
+            {hubs.length > 0 ? hubs.map((hub, index) => {
+              // Generate short name/abbreviation for all communities
+              const getShortName = (name) => {
+                if (!name) return 'HUB';
+                // Special cases
+                if (name.toLowerCase().includes('lovely professional university')) return 'LPU';
+                if (name.toLowerCase().includes('indian institute of technology')) return 'IIT';
+                if (name.toLowerCase().includes('national institute of technology')) return 'NIT';
+                if (name.toLowerCase().includes('delhi technological university')) return 'DTU';
+                if (name.toLowerCase().includes('thapar institute')) return 'TIET';
+                if (name.toLowerCase().includes('birla institute')) return 'BITS';
+                
+                // For other names, take first letter of each word (max 4 chars)
+                const words = name.trim().split(/\s+/);
+                if (words.length === 1) {
+                  return name.substring(0, 4).toUpperCase();
+                }
+                return words.map(w => w[0]).join('').substring(0, 4).toUpperCase();
+              };
+              const displayName = getShortName(hub.Name);
+              
+              // Generate consistent gradient based on name
+              const getGradient = (name) => {
+                const colors = [
+                  'from-purple-600/30 to-blue-600/30',
+                  'from-pink-600/30 to-purple-600/30',
+                  'from-blue-600/30 to-cyan-500/30',
+                  'from-green-600/30 to-emerald-600/30',
+                  'from-orange-600/30 to-yellow-500/30',
+                  'from-red-600/30 to-pink-600/30',
+                  'from-indigo-600/30 to-purple-600/30',
+                  'from-cyan-500/30 to-blue-600/30',
+                ];
+                const hash = (name || '').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+                return colors[hash % colors.length];
+              };
+              
+              return (
+                <motion.div
+                  key={hub.id || hub.Id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Link to={`/hub/${hub.id || hub.Id}`} className="block h-full">
+                    <div className="card-dark p-4 md:p-5 text-center hover:border-purple-500/40 transition-all cursor-pointer group flex flex-col relative overflow-hidden w-full aspect-square rounded-2xl">
+                      {/* Background Gradient - Round Square */}
+                      <div className={`absolute -inset-4 rounded-2xl bg-gradient-to-br ${getGradient(hub.Name)} opacity-50`}></div>
+                      <div className="absolute -top-6 -right-6 w-24 h-24 md:w-20 md:h-20 opacity-10 flex items-center justify-center">
+                        <span className="text-5xl md:text-5xl font-black text-white hidden">{displayName}</span>
+                      </div>
+                      
+                      {/* Content - Full grid width */}
+                      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full py-6 md:py-2">
+                        <div className="w-20 h-20 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-purple-600/40 to-blue-600/40 flex items-center justify-center mb-3 md:mb-4 shadow-lg shadow-purple-500/20">
+                          <Building2 size={32} md:size={20} className="text-white" />
+                        </div>
+                        <h4 className="text-lg md:text-sm font-semibold text-white group-hover:text-purple-400 transition-colors text-center">
+                          {displayName}
+                        </h4>
+                      </div>
+                    </div>
+                  </Link>
                 </motion.div>
-              )) : <p className="text-[10px] font-black uppercase tracking-widest text-gray-800 py-10">Signals searching...</p>}
-            </div>
-          </div>
-
-          {/* VIBE CHECK (POLLS) */}
-          <div className="ambient-card p-10 rounded-[50px] text-white relative overflow-hidden flex flex-col justify-between border border-[rgba(255,255,255,0.12)]">
-            <div>
-              <div className="flex items-center gap-3 mb-8">
-                <MessageSquare size={18} className="text-cyan-200" />
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Vibe Check</span>
-              </div>
-              <h3 className="text-3xl font-black uppercase italic leading-tight mb-10 text-white/90">
-                {activePoll ? activePoll.Question : "NO ACTIVE MISSION"}
-              </h3>
-            </div>
-
-            {activePoll && (
-              <div>
-                {!voted ? (
-                  <div className="space-y-4">
-                    <button onClick={() => handleVote('VotesA')} className="w-full py-5 bg-[var(--accent-bg)] hover:bg-[var(--accent-color)] text-[var(--accent-color)] hover:text-white border border-[var(--accent-border)] rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all">
-                      {activePoll.OptionA}
-                    </button>
-                    <button onClick={() => handleVote('VotesB')} className="w-full py-5 bg-[var(--accent-bg)] hover:bg-[var(--accent-color)] text-[var(--accent-color)] hover:text-white border border-[var(--accent-border)] rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all">
-                      {activePoll.OptionB}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="flex justify-between text-[10px] font-black">
-                      <span>RESULTS DEPLOYED</span>
-                      <span>{Math.round((activePoll.VotesA / (activePoll.VotesA + activePoll.VotesB || 1)) * 100)}% MATCH</span>
-                    </div>
-                    <div className="h-3 bg-black/20 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(activePoll.VotesA / (activePoll.VotesA + activePoll.VotesB || 1)) * 100}%` }}
-                        className="h-full bg-white"
-                      />
-                    </div>
-                  </div>
-                )}
+              );
+            }) : (
+              <div className="col-span-full">
+                <div className="card-dark p-6 md:p-8 text-center">
+                  <Globe size={24} md:size={32} className="mx-auto mb-2 md:mb-3 text-gray-600" />
+                  <p className="text-gray-400 text-sm md:text-base">No communities found</p>
+                </div>
               </div>
             )}
           </div>
         </section>
 
-        {/* HUBS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-2">
-          {loading ? (
-            <div className="col-span-full py-40 text-center opacity-80">
-              <div className="inline-flex items-center justify-center gap-3 mb-4 text-lg font-black uppercase tracking-[0.2em] text-white">
-                <span className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" /> LOADING HUBS...
+        {/* Bottom Grid - Network Pulse, Vibe Check & Featured Intel */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 items-start mt-6 md:mt-8 justify-center">
+          
+          {/* Network Pulse */}
+          <div className="relative overflow-hidden rounded-xl h-full">
+            {/* Background icon */}
+            <div className="absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 pointer-events-none">
+              <Activity size={100} md:size={120} className="text-green-400" strokeWidth={1} />
+            </div>
+            <div className="card-dark p-4 md:p-6 relative z-10 h-full flex flex-col">
+              <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 shrink-0">
+                <Activity size={16} md:size={18} className="text-green-400" />
+                <h3 className="text-sm md:text-base font-semibold text-white flex-1 text-center">Network Pulse</h3>
               </div>
-              <p className="text-sm text-gray-400">This area will populate as soon as your hub data arrives.</p>
-            </div>
-          ) : hubs.length > 0 ? hubs.map((hub, index) => {
-            const color = HUB_COLORS[index % HUB_COLORS.length];
-            return (
-              <motion.div key={hub.id || hub.Id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-                <Link to={`/hub/${hub.id || hub.Id}`}>
-                  <div className={`p-8 md:p-10 min-h-[520px] md:h-[500px] bg-[var(--card-bg)] rounded-[40px] md:rounded-[60px] border-2 border-[var(--border-color)] shadow-xl shadow-[0_40px_80px_-20px_var(--shadow-color)] flex flex-col justify-between overflow-hidden group hover:${color.shadow} transition-all`}>
-                    <div className="flex flex-col gap-4 flex-1 overflow-hidden">
-                      <div className="flex justify-between gap-4 flex-shrink-0">
-                        <div className={`w-16 h-16 rounded-[24px] ${color.light} flex items-center justify-center flex-shrink-0`}>
-                          <Globe size={28} className={color.text} />
-                        </div>
-                        <span className={`text-[8px] font-black uppercase px-3 py-2 ${color.bg} text-white rounded-full flex-shrink-0`}>LIVE</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-3xl font-black font-sporty uppercase text-white group-hover:text-[var(--accent-color)] transition-colors line-clamp-3 break-words">{getHubAbbreviation(hub.Name)}</h3>
-                        <p className="text-[11px] font-bold text-[var(--text-secondary)] mt-3 line-clamp-2">{hub.Tagline}</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center gap-4 flex-shrink-0 mt-4">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] flex-1 truncate">Gateway Access</span>
-                      <div className={`w-14 h-14 ${color.bg} text-white rounded-[22px] flex items-center justify-center group-hover:translate-x-2 transition-transform flex-shrink-0`}><ArrowRight size={24} /></div>
-                    </div>
+              <div className="space-y-2 md:space-y-3 overflow-y-auto pr-1 flex-1 max-h-[250px] custom-scrollbar">
+                {activities.length > 0 ? activities.slice(0, 10).map((act, i) => (
+                  <div key={i} className="flex items-center gap-2 md:gap-3 py-2 md:py-3 border-b border-white/5 last:border-0">
+                    <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-purple-500 shrink-0"></div>
+                    <span className="text-[10px] md:text-xs text-gray-400 truncate">{act.Log}</span>
                   </div>
-                </Link>
-              </motion.div>
-            );
-          }) : (
-            <div className="col-span-full py-40 text-center opacity-20">
-              <Zap size={64} className="mx-auto mb-4 text-purple-400" />
-              <p className="font-black text-2xl uppercase tracking-widest text-purple-300">No Nodes Found</p>
+                )) : (
+                  <p className="text-xs md:text-sm text-gray-600 py-4">No activity yet</p>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+
+          {/* Featured Intel */}
+          <div className="relative overflow-hidden rounded-xl h-full">
+            {/* Background icon */}
+            <div className="absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 pointer-events-none">
+              <Megaphone size={100} md:size={120} className="text-purple-400" strokeWidth={1} />
+            </div>
+            <div className="card-dark p-4 md:p-6 relative z-10 h-full flex flex-col">
+              <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 shrink-0">
+                <Megaphone size={16} md:size={18} className="text-purple-400" />
+                <h3 className="text-sm md:text-base font-semibold text-white flex-1 text-center">Featured Intel</h3>
+              </div>
+              {featuredIntel ? (
+                <div className="flex-1 flex flex-col justify-center">
+                  <div className="mb-3">
+                    <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-purple-600/20 text-purple-400 rounded-full border border-purple-500/20">
+                      {featuredIntel.Category || 'BROADCAST'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white mb-2 line-clamp-2 uppercase tracking-tight">{featuredIntel.Title}</h4>
+                  <p className="text-[11px] text-gray-400 line-clamp-4 leading-relaxed mb-4 italic">
+                    "{featuredIntel.Message}"
+                  </p>
+                  <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">● {featuredIntel.AuthorName || 'SYSTEM'}</span>
+                    <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">{new Date(featuredIntel.CreatedAt || Date.now()).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-gray-600 italic">No active broadcast signals.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Vibe Check */}
+          <div className="relative overflow-hidden rounded-xl h-full">
+            {/* Background icon */}
+            <div className="absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 pointer-events-none">
+              <MessageSquare size={100} md:size={120} className="text-cyan-400" strokeWidth={1} />
+            </div>
+            <div className="card-dark p-4 md:p-6 relative z-10 h-full flex flex-col">
+              <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 shrink-0">
+                <MessageSquare size={16} md:size={18} className="text-cyan-400" />
+                <h3 className="text-sm md:text-base font-semibold text-white flex-1 text-center">Vibe Check</h3>
+              </div>
+              {activePoll ? (
+                <div className="flex-1 flex flex-col">
+                  <p className="text-xs md:text-sm text-gray-300 mb-4 line-clamp-3 italic">"{activePoll.Question}"</p>
+                  <div className="mt-auto">
+                    {!voted ? (
+                      <div className="space-y-2">
+                        <button 
+                          onClick={() => handleVote('VotesA')} 
+                          className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] md:text-xs text-gray-300 transition-colors text-left px-3 font-bold uppercase tracking-widest"
+                        >
+                          {activePoll.OptionA}
+                        </button>
+                        <button 
+                          onClick={() => handleVote('VotesB')} 
+                          className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] md:text-xs text-gray-300 transition-colors text-left px-3 font-bold uppercase tracking-widest"
+                        >
+                          {activePoll.OptionB}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-[9px] font-black text-gray-500 uppercase tracking-widest">
+                          <span>Result Protocol</span>
+                          <span>{Math.round((activePoll.VotesA / (activePoll.VotesA + activePoll.VotesB || 1)) * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(activePoll.VotesA / (activePoll.VotesA + activePoll.VotesB || 1)) * 100}%` }}
+                            className="h-full bg-gradient-to-r from-purple-500 to-blue-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-gray-600 italic">No active polls found.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       </main>
+
+      <style>{`
+        .card-hero {
+          background: rgba(20, 20, 25, 0.8);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .card-dark {
+          background: rgba(20, 20, 25, 0.6);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 16px;
+          transition: all 0.3s ease;
+        }
+        .card-dark:hover {
+          border-color: rgba(139, 92, 246, 0.4);
+          box-shadow: 0 0 30px rgba(139, 92, 246, 0.15), 0 0 60px rgba(139, 92, 246, 0.05);
+          transform: translateY(-2px);
+        }
+        .glow-border {
+          position: relative;
+        }
+        .glow-border::before {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          border-radius: inherit;
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+          z-index: -1;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .glow-border:hover::before {
+          opacity: 1;
+        }
+        
+        /* Glow animation for communities section */
+        @keyframes glow-pulse {
+          0%, 100% { 
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+          }
+          50% { 
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.5), 0 0 80px rgba(139, 92, 246, 0.2);
+          }
+        }
+        
+        .animate-pulse-glow {
+          animation: glow-pulse 2s ease-in-out infinite;
+          border-radius: 24px;
+          padding: 8px;
+          background: rgba(139, 92, 246, 0.05);
+        }
+      `}</style>
     </div>
   );
 };

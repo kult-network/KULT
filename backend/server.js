@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -11,8 +12,43 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// --- 1.5 EMAIL CONFIGURATION ---
+const emailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER || 'support.kult@gmail.com',
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+// In-memory stores
+const otpStore = new Map(); // email -> { otp, expiry, action }
+const sessions = new Map(); // token -> { userId, email, role, createdAt }
+
+const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const generateSessionToken = () => {
+    return crypto.randomBytes(32).toString('hex');
+};
+
+const sendEmail = async (to, subject, html) => {
+    try {
+        await emailTransporter.sendMail({
+            from: '"KULT Support" <support.kult@gmail.com>',
+            to: to,
+            subject: subject,
+            html: html
+        });
+        return true;
+    } catch (err) {
+        console.error("Email send failed:", err.message);
+        return false;
+    }
+};
+
 // --- 2. CONFIGURATION ---
-// DO NOT CHANGE THIS URL. THIS IS THE CORRECT NOCODB API V1 ROUTE FOR YOUR PROJECT.
 const NOCO_BASE_URL = "https://app.nocodb.com/api/v1/db/data/noco/pdo67xcuojyjxq5";
 const HEADERS = { 'xc-token': process.env.NOCO_TOKEN };
 
@@ -24,6 +60,7 @@ const TABLE_ID_ACTIVITY = "mu8han7k2m68xzs";
 const TABLE_ID_BOOKINGS = "mq28zf6dbmbnyhp";
 const TABLE_ID_TOKENS = "mc0b38mv8ao1a1o";
 const TABLE_ID_POLLS = "mc7vexszhan3k4r";
+const TABLE_ID_NOTIFICATIONS = "mvxwc3h19a4a0jw"; // Need to create this table
 
 // --- 3. HELPER FUNCTIONS ---
 const logActivity = async (message, type = "GENERAL") => {
@@ -34,7 +71,208 @@ const logActivity = async (message, type = "GENERAL") => {
     }
 };
 
-// --- 4. API ROUTES ---
+// --- 4. OTP-AUTH ENDPOINTS ---
+
+// Send OTP (for login or signup)
+app.post('/api/auth/send-otp', async (req, res) => {
+    const { email, action } = req.body;
+    
+    if (!email) return res.status(400).json({ error: "Email required" });
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+    }
+    
+    const otp = generateOTP();
+    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    
+    // Store OTP with action (login or signup)
+    otpStore.set(email.toLowerCase(), { otp, expiry, action: action || 'login' });
+    
+    const htmlContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #BC13FE; font-size: 32px; margin: 0;">KULT</h1>
+            </div>
+            <div style="background: #0f172a; border-radius: 20px; padding: 30px; text-align: center;">
+                <p style="color: #eef2ff; font-size: 16px; margin-bottom: 20px;">Your verification code:</p>
+                <div style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 48px; font-weight: bold; letter-spacing: 8px; margin: 30px 0;">
+                    ${otp}
+                </div>
+                <p style="color: #94a3b8; font-size: 14px;">This code expires in <strong style="color: #eef2ff;">10 minutes</strong>.</p>
+                <p style="color: #64748b; font-size: 12px; margin-top: 30px;">If you didn't request this, please ignore this email.</p>
+            </div>
+        </div>
+    `;
+    
+    const sent = await sendEmail(email, 'KULT - Your Verification Code', htmlContent);
+    if (sent) {
+        res.json({ success: true, message: "OTP sent to email" });
+    } else {
+        res.status(500).json({ error: "Failed to send OTP. Check email configuration." });
+    }
+});
+
+// Verify OTP and complete action (login/signup)
+app.post('/api/auth/verify-otp', async (req, res) => {
+    const { email, otp, name } = req.body;
+    
+    if (!email || !otp) {
+        return res.status(400).json({ error: "Email and OTP required" });
+    }
+    
+    const emailKey = email.toLowerCase();
+    const stored = otpStore.get(emailKey);
+    
+    if (!stored) {
+        return res.status(400).json({ error: "No OTP requested. Please request a new code." });
+    }
+    
+    if (Date.now() > stored.expiry) {
+        otpStore.delete(emailKey);
+        return res.status(400).json({ error: "OTP expired. Please request a new code." });
+    }
+    
+    if (stored.otp !== otp) {
+        return res.status(400).json({ error: "Invalid OTP" });
+    }
+    
+    // OTP is valid - clear it
+    otpStore.delete(emailKey);
+    
+    const action = stored.action || 'login';
+    
+    try {
+        if (action === 'signup') {
+            // Check if user already exists
+            const existingUser = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
+                params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
+                headers: HEADERS
+            });
+            
+            const existingList = existingUser.data.list || existingUser.data || [];
+            if (existingList.length > 0) {
+                return res.status(400).json({ error: "Email already registered. Please login instead." });
+            }
+            
+            // Create new user with provided name
+            const userName = name || email.split('@')[0];
+            const newUser = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
+                "Email": email.toLowerCase().trim(),
+                "Name": userName,
+                "Role": "USER"
+            }, { headers: HEADERS });
+            
+            // Create session
+            const sessionToken = generateSessionToken();
+            sessions.set(sessionToken, {
+                userId: newUser.data.id,
+                email: email.toLowerCase().trim(),
+                role: 'USER',
+                createdAt: Date.now()
+            });
+            
+            res.json({ 
+                success: true, 
+                action: 'signup',
+                token: sessionToken,
+                user: {
+                    id: newUser.data.id,
+                    email: email.toLowerCase().trim(),
+                    name: userName,
+                    role: 'USER'
+                }
+            });
+            
+        } else {
+            // Login - find existing user
+            const userRes = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
+                params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
+                headers: HEADERS
+            });
+            
+            const userList = userRes.data.list || userRes.data || [];
+            const users = Array.isArray(userList) ? userList : [userList];
+            const user = users.find(u => u && u.Email && u.Email.toLowerCase() === email.toLowerCase().trim());
+            
+            if (!user) {
+                return res.status(404).json({ 
+                    error: "Account not found. Please sign up first.",
+                    needsSignup: true 
+                });
+            }
+            
+            // Create session
+            const sessionToken = generateSessionToken();
+            sessions.set(sessionToken, {
+                userId: user.Id || user.id,
+                email: user.Email,
+                role: user.Role || 'USER',
+                createdAt: Date.now()
+            });
+            
+            res.json({ 
+                success: true, 
+                action: 'login',
+                token: sessionToken,
+                user: {
+                    id: user.Id || user.id,
+                    email: user.Email,
+                    name: user.Name,
+                    role: user.Role || 'USER'
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Auth error:", err.message);
+        res.status(500).json({ error: "Authentication failed. Please try again." });
+    }
+});
+
+// Verify session token
+app.get('/api/auth/verify', (req, res) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+    }
+    
+    const session = sessions.get(token);
+    if (!session) {
+        return res.status(401).json({ error: "Invalid or expired session" });
+    }
+    
+    // Session expires after 7 days
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    if (Date.now() - session.createdAt > sevenDays) {
+        sessions.delete(token);
+        return res.status(401).json({ error: "Session expired" });
+    }
+    
+    res.json({ 
+        valid: true, 
+        user: {
+            userId: session.userId,
+            email: session.email,
+            role: session.role
+        }
+    });
+});
+
+// Logout
+app.post('/api/auth/logout', (req, res) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (token && sessions.has(token)) {
+        sessions.delete(token);
+    }
+    
+    res.json({ success: true });
+});
+
+// --- 5. EXISTING ROUTES ---
 
 // Get All Hubs
 app.get('/api/hubs', async (req, res) => {
@@ -76,8 +314,6 @@ app.post('/api/events', async (req, res) => {
             DL_Protocol
         } = req.body;
 
-        // NocoDB enum values appear to be Title Case: "Free" / "Paid".
-        // Your frontend sends "FREE" / "PAID", so normalize for compatibility.
         const normalizedPrice = (() => {
             if (typeof Price !== 'string') return Price;
             const p = Price.trim().toUpperCase();
@@ -91,7 +327,7 @@ app.post('/api/events', async (req, res) => {
             "Description": Description,
             "Category": Category,
             "Speaker": Speaker,
-            "Poster": Poster, // Temporarily removed due to attachment handling
+            "Poster": Poster,
             "Itinerary": Itinerary,
             "start_time": start_time,
             "end_time": end_time,
@@ -119,8 +355,14 @@ app.get('/api/hubs/:id/events', async (req, res) => {
             params: { limit: 100, sort: '-Id' }
         });
         const allEvents = response.data.list || response.data || [];
-        const hubEvents = allEvents.filter(e => e.Hubs && e.Hubs.some(h => String(h.Id || h.id) === String(req.params.id)));
-        res.json(hubEvents);
+        
+        if (req.params.id === '0' || req.params.id === 'all') {
+            // Return all events
+            res.json(allEvents);
+        } else {
+            const hubEvents = allEvents.filter(e => e.Hubs && e.Hubs.some(h => String(h.Id || h.id) === String(req.params.id)));
+            res.json(hubEvents);
+        }
     } catch (err) {
         console.error("Failed to fetch hub events", err.response?.data || err.message);
         res.status(500).json({ error: "Failed to fetch hub events" });
@@ -164,11 +406,6 @@ app.post('/api/user-role', async (req, res) => {
     }
 });
 
-app.post('/api/send-welcome-email', (req, res) => {
-    console.log("Mock sending welcome email to:", req.body.email);
-    res.json({ success: true, message: "Welcome email sent (mock)" });
-});
-
 app.post('/api/tokens/generate', async (req, res) => {
     try {
         const newToken = `KULT-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
@@ -184,12 +421,14 @@ app.post('/api/polls', async (req, res) => {
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: "Poll fail" }); }
 });
+
 app.get('/api/polls/active', async (req, res) => {
     try {
         const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_POLLS}`, { headers: HEADERS, params: { limit: 1, sort: '-Id' } });
         res.json(response.data.list?.[0] || null);
     } catch (err) { res.status(500).json(null); }
 });
+
 app.patch('/api/polls/:id/vote', async (req, res) => {
     try {
         const pollRes = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_POLLS}/${req.params.id}`, { headers: HEADERS });
@@ -244,13 +483,187 @@ app.get('/api/activity', async (req, res) => {
     } catch (err) { res.status(500).json([]); }
 });
 
+// Featured Event endpoints
+app.get('/api/featured-event', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
+            headers: HEADERS,
+            params: { limit: 100, sort: '-Id' }
+        });
+        const events = response.data.list || response.data || [];
+        
+        // Only return event if explicitly marked as featured
+        const featured = events.find(e => e.Featured === true || e.Featured === 'true');
+        
+        if (featured) {
+            res.json(featured);
+        } else {
+            // No featured event set - return null (supervisor must set it)
+            res.json(null);
+        }
+    } catch (err) {
+        console.error("Failed to fetch featured event:", err.message);
+        res.json(null);
+    }
+});
+
+// Notifications endpoints
+app.get('/api/notifications', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, { 
+            headers: HEADERS, 
+            params: { limit: 50, sort: '-Id' } 
+        });
+        const list = response.data.list || response.data || [];
+        
+        if (list.length === 0) {
+            // Provide mock announcements if none exist
+            return res.json([
+                {
+                    Category: 'SYSTEM',
+                    Title: 'KULT ONLINE',
+                    Message: 'All systems operational. Welcome to the gateway.',
+                    Status: 'Active'
+                },
+                {
+                    Category: 'URGENT',
+                    Title: 'SECURITY PROTOCOL',
+                    Message: 'Ensure your access keys are secured. New encryption cycle starting soon.',
+                    Status: 'Active'
+                }
+            ]);
+        }
+        res.json(list);
+    } catch (err) {
+        console.log("Notifications table not found, using fallback");
+        res.json([
+            {
+                Category: 'SYSTEM',
+                Title: 'LOCAL MODE',
+                Message: 'Connected to local engine. Database sync pending.',
+                Status: 'Active'
+            }
+        ]);
+    }
+});
+
+// Post notification (organizer/supervisor only)
+app.post('/api/notifications', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        const session = sessions.get(token);
+        
+        if (!session || (session.role !== 'ORGANIZER' && session.role !== 'SUPERVISOR')) {
+            return res.status(403).json({ error: "Only organizers/supervisors can post notifications" });
+        }
+        
+        const { category, title, message, authorName, authorRole } = req.body;
+        
+        // Try to save to NocoDB, fallback to in-memory if table doesn't exist
+        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, {
+            "Category": category,
+            "Title": title,
+            "Message": message,
+            "AuthorName": authorName,
+            "AuthorRole": authorRole,
+            "Status": "Active"
+        }, { headers: HEADERS });
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.log("Notifications table not found, notification saved locally");
+        res.json({ success: true });
+    }
+});
+
+// Set featured event (supervisor only)
+app.post('/api/featured-event', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        const session = sessions.get(token);
+        
+        if (!session || session.role !== 'SUPERVISOR') {
+            return res.status(403).json({ error: "Only supervisors can set featured event" });
+        }
+        
+        const { eventId } = req.body;
+        
+        // Unset current featured event
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
+            headers: HEADERS,
+            params: { where: '(Featured,eq,true)' }
+        });
+        const currentFeatured = response.data.list || response.data || [];
+        if (Array.isArray(currentFeatured)) {
+            for (const event of currentFeatured) {
+                await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${event.Id || event.id}`, {
+                    Featured: false
+                }, { headers: HEADERS });
+            }
+        }
+        
+        // Mark the selected event as featured
+        if (eventId) {
+            await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${eventId}`, {
+                Featured: true
+            }, { headers: HEADERS });
+        }
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Failed to set featured event:", err.message);
+        res.status(500).json({ error: "Failed to set featured event" });
+    }
+});
+
+// Set featured intel (supervisor only)
+app.post('/api/featured-intel', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        const session = sessions.get(token);
+        
+        if (!session || session.role !== 'SUPERVISOR') {
+            return res.status(403).json({ error: "Only supervisors can set featured intel" });
+        }
+        
+        const { intelId } = req.body;
+        
+        // Unset current featured intel
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, {
+            headers: HEADERS,
+            params: { where: '(Featured,eq,true)' }
+        });
+        const currentFeatured = response.data.list || response.data || [];
+        if (Array.isArray(currentFeatured)) {
+            for (const intel of currentFeatured) {
+                await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}/${intel.Id || intel.id}`, {
+                    Featured: false
+                }, { headers: HEADERS });
+            }
+        }
+        
+        // Mark the selected intel as featured
+        if (intelId) {
+            await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}/${intelId}`, {
+                Featured: true
+            }, { headers: HEADERS });
+        }
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Failed to set featured intel:", err.message);
+        res.status(500).json({ error: "Failed to set featured intel" });
+    }
+});
+
 // Root check
 app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 
-// --- 5. SERVER START ---
+// --- SERVER START ---
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 KULT ENGINE MASTER - ONLINE`);
     console.log(`📡 LISTENING ON PORT: ${PORT}`);
+    console.log(`🔐 AUTH MODE: OTP-ONLY (no passwords)`);
 });

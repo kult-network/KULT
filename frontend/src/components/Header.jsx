@@ -1,7 +1,5 @@
 import React from 'react';
-import { Zap, LogOut, ShieldCheck, User as UserIcon, Crown, Star } from 'lucide-react'; 
-import { auth } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { Zap, LogOut, ShieldCheck, User as UserIcon, Crown, Star, Menu, Bell } from 'lucide-react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -26,11 +24,23 @@ const ROLE_ASSETS = {
   }
 };
 
-const Header = ({ user, userData, role }) => {
+const Header = ({ user, userData, role, onMenuClick, sidebarOpen, notifications = [] }) => {
   const navigate = useNavigate();
   const userRole = (role || 'USER').toUpperCase();
   const roleInfo = ROLE_ASSETS[userRole] || ROLE_ASSETS.USER;
   const isSupervisor = userRole === 'SUPERVISOR';
+
+  // Calculate unread notifications
+  const unreadCount = React.useMemo(() => {
+    const saved = localStorage.getItem('read_notifications');
+    const readIds = saved ? JSON.parse(saved) : [];
+    return notifications.filter(n => !readIds.includes(n.id || n.Id)).length;
+  }, [notifications]);
+  
+  // Get user data from props or localStorage
+  const storedUser = userData || (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('kult_user') || '{}') : {});
+  const displayName = storedUser?.name || user?.name || user?.email?.split('@')[0] || "Operator";
+  
   const renderAvatar = () => {
     if (user?.photoURL) {
       return (
@@ -51,42 +61,65 @@ const Header = ({ user, userData, role }) => {
     );
   };
   return (
-    <nav className="w-full h-20 px-4 sm:px-6 md:px-12 flex flex-wrap justify-between items-center gap-3 bg-slate-950/90 backdrop-blur-2xl border border-white/10 z-[1000] shadow-2xl">
-      <Link to="/" className="flex items-center gap-2 group">
+    <nav className="w-full h-20 px-4 sm:px-6 md:px-12 flex justify-between items-center gap-3 bg-slate-950/90 backdrop-blur-2xl border border-white/10 z-[1000] shadow-2xl overflow-hidden">
+      {/* Left side: Logo always */}
+      <Link to="/" className="flex items-center gap-2 group shrink-0">
         <div className="p-2 bg-slate-900/90 text-white rounded-2xl group-hover:bg-purple-600 transition-all duration-300 shadow-2xl shadow-purple-500/10">
           <Zap size={20} fill="white" />
         </div>
-        <h2 className="font-sporty font-black text-xl md:text-2xl tracking-tighter uppercase italic neon-text">
-          KULT <span className="text-gradient non-italic">GATEWAY</span>
+        <h2 className={`font-clash-display text-[8px] xs:text-[10px] sm:text-sm md:text-xl lg:text-2xl tracking-tighter uppercase italic neon-text ${sidebarOpen ? 'hidden md:block' : ''}`}>
+          KULT<br className="md:hidden" /><span className="hidden md:inline"> </span><span className="text-gradient non-italic">GATEWAY</span>
         </h2>
       </Link>
-      <div className="flex items-center gap-4 md:gap-6">
+
+      {/* Right side: User info / Login / Menu Button */}
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Menu Button - visible when sidebar is closed */}
+        {onMenuClick && (
+          <button 
+            onClick={() => onMenuClick(true)}
+            className={`w-10 h-10 bg-white/5 rounded-xl items-center justify-center border border-white/10 hover:border-purple-400 hover:bg-purple-500/10 transition-all group shrink-0 relative ${sidebarOpen ? 'hidden' : 'flex'}`}
+            title="Menu"
+          >
+            <Menu size={18} className="text-gray-400 group-hover:text-purple-400 transition-colors" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-slate-950 animate-pulse shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
+            )}
+          </button>
+        )}
+        
         {!user ? (
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/auth')}
-            className="px-8 py-3 bg-purple-600 text-white font-black text-[10px] uppercase tracking-[0.3em] rounded-2xl hover:bg-violet-500 transition-all shadow-xl flex items-center gap-2"
+            className="px-3 py-2 sm:px-6 sm:py-2.5 md:px-8 md:py-3 bg-purple-600 text-white font-black text-[10px] sm:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.3em] rounded-xl sm:rounded-2xl hover:bg-violet-500 transition-all shadow-xl flex items-center gap-2 shrink-0"
           >
-            LOGIN ACCESS <UserIcon size={14} />
+            <span className="hidden sm:inline">LOGIN</span>
+            <UserIcon size={14} />
           </motion.button>
         ) : (
-          <div className="flex flex-wrap items-center gap-3 md:gap-6">
+          <>
+            
+            {/* Control Gateway - Only on desktop */}
             {isSupervisor && (
-              <Link to="/supervisor" className="hidden sm:block">
+              <Link to="/supervisor" className="hidden lg:block shrink-0">
                 <motion.button 
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl font-black text-[9px] uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all shadow-xl active:translate-y-0.5"
+                  className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl active:scale-95"
+                  title="Control Gateway"
                 >
-                  <ShieldCheck size={14} strokeWidth={3} /> CONTROL GATEWAY
+                  <ShieldCheck size={18} strokeWidth={2.5} />
                 </motion.button>
               </Link>
             )}
-            <div className="flex items-center gap-4 pl-4 border-l border-white/10">
+            
+            {/* User info & Logout - Only on desktop */}
+            <div className={`hidden lg:flex items-center gap-3 pl-4 border-l border-white/10 shrink-0`}>
               <div className="text-right">
                 <p className="text-sm font-semibold tracking-normal text-white leading-tight mb-0.5">
-                   {userData?.Name || user?.displayName?.split(' ')[0] || "Operator"}
+                   {displayName}
                 </p>
                 <p className={`text-[10px] font-medium uppercase tracking-[0.2em] flex items-center justify-end gap-2 opacity-90 ${roleInfo.textClasses}`}>
                    <span className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px] ${roleInfo.textClasses.replace('text-', 'bg-')} `}></span>
@@ -97,14 +130,18 @@ const Header = ({ user, userData, role }) => {
                 {renderAvatar()}
               </div>
               <button 
-                onClick={() => signOut(auth)}
+                onClick={() => {
+                  localStorage.removeItem('kult_token');
+                  localStorage.removeItem('kult_user');
+                  window.location.reload();
+                }}
                 className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 hover:border-red-400 hover:bg-red-500/10 transition-all group"
-                title="Terminate Session"
+                title="Logout"
               >
                 <LogOut size={18} className="text-gray-400 group-hover:text-red-500 transition-colors" />
               </button>
             </div>
-          </div>
+          </>
         )}
       </div>
     </nav>

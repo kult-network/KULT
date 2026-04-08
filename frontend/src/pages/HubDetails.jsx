@@ -26,6 +26,10 @@ const KULT_COLORS = [
 const HubDetails = ({ user, role }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return Object.fromEntries(params.entries());
+  });
   const [events, setEvents] = useState([]);
   const [hubData, setHubData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +62,19 @@ const HubDetails = ({ user, role }) => {
     };
     fetchData();
   }, [id]);
+
+  // Auto-open event from URL query param
+  useEffect(() => {
+    const eventIdFromUrl = searchParams.event;
+    if (eventIdFromUrl && events.length > 0) {
+      const event = events.find(e => String(e.Id || e.id) === String(eventIdFromUrl));
+      if (event) {
+        setSelectedEvent(event);
+        // Clear URL params
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [events, searchParams]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -154,7 +171,12 @@ const getPosterUrl = (event) => {
                   <>
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-500 mb-4 block">Intelligence Brief</span>
                     <h2 className="text-4xl md:text-5xl font-black font-sporty uppercase mb-6 italic tracking-tighter leading-none">{selectedEvent.Title}</h2>
-                    <p className="text-gray-400 text-sm font-bold mb-10 border-l-4 border-purple-600 pl-6 uppercase tracking-tighter leading-relaxed">{selectedEvent.Description || "Mission protocol details are classified."}</p>
+                    <div className="mb-10 relative group">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/20 to-transparent blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <p className="relative text-slate-100 text-sm font-bold border-l-4 border-purple-600 pl-6 uppercase tracking-tight leading-relaxed py-1 bg-gradient-to-r from-purple-600/5 to-transparent">
+                        {selectedEvent.Description || "Mission protocol details are classified."}
+                      </p>
+                    </div>
                     <div className="grid grid-cols-2 gap-6 mb-10">
                       <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                         <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">COMMANDER</p>
@@ -268,9 +290,9 @@ const getPosterUrl = (event) => {
 
                 <div className="p-6 md:p-10 flex-grow flex flex-col">
                   <h3 className="text-3xl font-black font-sporty uppercase leading-none tracking-tighter mb-6 text-white group-hover:text-purple-400 transition-colors line-clamp-2">{event.Title}</h3>
-                  <div className={`border-l-4 ${color.border} pl-6 space-y-3 mb-10`}>
-                    <p className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2"><Ticket size={14} className={color.text}/> {event.Price === 'PAID' ? 'PAID MISSION' : 'FREE ACCESS'}</p>
-                    <p className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-2"><User size={14} className={color.text}/> {event.Speaker}</p>
+                  <div className={`border-l-4 ${color.border} pl-6 space-y-3 mb-10 bg-gradient-to-r from-white/5 to-transparent py-2`}>
+                    <p className="text-[11px] font-black uppercase text-slate-100 flex items-center gap-2 tracking-widest"><Ticket size={14} className={color.text}/> {event.Price === 'PAID' ? 'PAID MISSION' : 'FREE ACCESS'}</p>
+                    <p className="text-[11px] font-black uppercase text-slate-100 flex items-center gap-2 tracking-widest"><User size={14} className={color.text}/> {event.Speaker}</p>
                   </div>
                   <button onClick={() => setSelectedEvent(event)} className={`w-full py-6 mt-auto border-2 ${color.border} ${color.text} font-black font-sporty uppercase rounded-[30px] hover:${color.bg} hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95`}>
                     View Mission <ChevronRight size={18} />

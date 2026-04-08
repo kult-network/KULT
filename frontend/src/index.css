@@ -132,6 +132,10 @@ button, a, input, textarea, select {
   letter-spacing: 0 !important;
 }
 
+.font-clash-display {
+  font-family: 'Clash Display', 'Syne', sans-serif !important;
+}
+
 .section-heading {
   display: inline-block;
   font-family: 'Syne', sans-serif !important;
