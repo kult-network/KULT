@@ -8,14 +8,12 @@ import Toast from '../components/Toast';
 const SupervisorPanel = () => {
   const [tokens, setTokens] = useState([]);
   const [events, setEvents] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState("");
   const [newlyGeneratedToken, setNewlyGeneratedToken] = useState(""); 
   const [newHub, setNewHub] = useState({ Name: '', Location: '', Tagline: '' });
   const [pollData, setPollData] = useState({ Question: '', OptionA: '', OptionB: '' });
   const [selectedEventId, setSelectedEventId] = useState("");
-  const [selectedIntelId, setSelectedIntelId] = useState("");
   const navigate = useNavigate();
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
   const showToast = (msg, type = 'success') => {
@@ -46,17 +44,6 @@ const SupervisorPanel = () => {
       }
     };
     fetchEvents();
-  }, []);
-
-  // Fetch announcements for featured selection
-  useEffect(() => {
-    const fetchNotifs = async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/api/notifications`);
-        setAnnouncements(res.data || []);
-      } catch (err) { console.error("Failed to fetch notifications:", err); }
-    };
-    fetchNotifs();
   }, []);
 
   useEffect(() => { fetchTokens(); }, []);
@@ -112,24 +99,6 @@ const SupervisorPanel = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       showToast("FEATURED EVENT UPDATED! ⭐", "success");
-    } catch (err) {
-      showToast("UPDATE FAILED", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSetFeaturedIntel = async (e) => {
-    e.preventDefault();
-    if (!selectedIntelId) return showToast("SELECT AN INTEL", "error");
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('kult_token');
-      await axios.post(`${API_BASE_URL}/api/featured-intel`, 
-        { intelId: selectedIntelId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      showToast("FEATURED INTEL UPDATED! 📡", "success");
     } catch (err) {
       showToast("UPDATE FAILED", "error");
     } finally {
@@ -214,65 +183,33 @@ const SupervisorPanel = () => {
           </div>
         </section>
         
-        {/* Featured Content Management */}
-        <section className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 bg-white/[0.02] p-10 rounded-[50px] border border-white/5 backdrop-blur-3xl shadow-2xl">
-          {/* Featured Event */}
-          <div className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-600/20"><Star size={24} /></div>
-              <h2 className="text-2xl font-black uppercase italic text-purple-100 neon-glow">Featured Event</h2>
-            </div>
-            <form onSubmit={handleSetFeaturedEvent} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-purple-300 ml-2 uppercase tracking-widest">Select Home Hero Event</label>
-                <select 
-                  className="w-full bg-black/50 border border-white/5 p-5 rounded-2xl outline-none focus:border-purple-400 font-bold uppercase text-[11px] text-purple-100"
-                  value={selectedEventId}
-                  onChange={e => setSelectedEventId(e.target.value)}
-                  required
-                >
-                  <option value="">SELECT AN EVENT</option>
-                  {events.map(event => (
-                    <option key={event.Id || event.id} value={event.Id || event.id}>
-                      {event.Title || event.Name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" disabled={loading} className="w-full py-6 bg-blue-600 text-white font-black uppercase rounded-2xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95">
-                {loading ? <Loader2 className="animate-spin" /> : <>SET AS FEATURED <Star size={18} /></>}
-              </button>
-            </form>
+        {/* Featured Event Selection */}
+        <section className="lg:col-span-2 bg-white/[0.02] p-10 rounded-[50px] border border-white/5 backdrop-blur-3xl shadow-2xl space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-600/20"><Star size={24} /></div>
+            <h2 className="text-2xl font-black uppercase italic text-purple-100 neon-glow">Set Featured Event</h2>
           </div>
-
-          {/* Featured Intel */}
-          <div className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="p-4 bg-purple-600 rounded-2xl shadow-lg shadow-purple-600/20"><Megaphone size={24} /></div>
-              <h2 className="text-2xl font-black uppercase italic text-purple-100 neon-glow">Featured Intel</h2>
+          <form onSubmit={handleSetFeaturedEvent} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-purple-300 ml-2 uppercase tracking-widest">Select Event to Feature on Home Page</label>
+              <select 
+                className="w-full bg-black/50 border border-white/5 p-5 rounded-2xl outline-none focus:border-purple-400 font-bold uppercase text-[11px] text-purple-100"
+                value={selectedEventId}
+                onChange={e => setSelectedEventId(e.target.value)}
+                required
+              >
+                <option value="">SELECT AN EVENT</option>
+                {events.map(event => (
+                  <option key={event.Id || event.id} value={event.Id || event.id}>
+                    {event.Name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <form onSubmit={handleSetFeaturedIntel} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-purple-300 ml-2 uppercase tracking-widest">Select Featured Broadcast</label>
-                <select 
-                  className="w-full bg-black/50 border border-white/5 p-5 rounded-2xl outline-none focus:border-purple-400 font-bold uppercase text-[11px] text-purple-100"
-                  value={selectedIntelId}
-                  onChange={e => setSelectedIntelId(e.target.value)}
-                  required
-                >
-                  <option value="">SELECT AN INTEL</option>
-                  {announcements.map(notif => (
-                    <option key={notif.Id || notif.id} value={notif.Id || notif.id}>
-                      {notif.Title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" disabled={loading} className="w-full py-6 bg-purple-600 text-white font-black uppercase rounded-2xl hover:bg-purple-700 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95">
-                {loading ? <Loader2 className="animate-spin" /> : <>SET AS FEATURED <Megaphone size={18} /></>}
-              </button>
-            </form>
-          </div>
+            <button type="submit" disabled={loading} className="w-full py-6 bg-blue-600 text-white font-black uppercase rounded-2xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95">
+              {loading ? <Loader2 className="animate-spin" /> : <>SET AS FEATURED <Star size={18} /></>}
+            </button>
+          </form>
         </section>
 
         <section className="lg:col-span-2 bg-gradient-to-r from-purple-900/10 to-transparent p-12 rounded-[60px] border border-white/5 backdrop-blur-3xl shadow-2xl relative overflow-hidden neon-card">

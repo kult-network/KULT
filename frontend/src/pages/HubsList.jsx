@@ -16,7 +16,6 @@ const HubsList = ({ user, role }) => {
   const [activePoll, setActivePoll] = useState(null);
   const [voted, setVoted] = useState(false);
   const [featuredEvent, setFeaturedEvent] = useState(null);
-  const [featuredIntel, setFeaturedIntel] = useState(null);
   const [showCommunitiesGlow, setShowCommunitiesGlow] = useState(false);
   const navigate = useNavigate();
 
@@ -72,20 +71,6 @@ const HubsList = ({ user, role }) => {
         setFeaturedEvent(resFeatured.data);
       } catch (err) {
         console.error("Failed to fetch featured event:", err);
-      }
-
-      // Fetch latest intel (Featured Intel)
-      try {
-        const resIntel = await axios.get(`${API_BASE_URL}/api/notifications`);
-        const intelData = resIntel.data || [];
-        if (intelData.length > 0) {
-          // Look for one explicitly marked as featured
-          const featured = intelData.find(n => n.Featured === true || n.Featured === 'true');
-          // Fallback to the latest one if none marked
-          setFeaturedIntel(featured || intelData[0]);
-        }
-      } catch (err) {
-        console.error("Failed to fetch featured intel:", err);
       }
 
       setLoading(false);
@@ -303,14 +288,14 @@ const HubsList = ({ user, role }) => {
           </div>
         </section>
 
-        {/* Bottom Grid - Network Pulse, Vibe Check & Featured Intel */}
+        {/* Bottom Grid - Network Pulse & Vibe Check */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 items-start mt-6 md:mt-8 justify-center">
           
           {/* Network Pulse */}
-          <div className="relative overflow-hidden rounded-xl h-full">
+          <div className="md:col-span-2 relative overflow-hidden rounded-xl">
             {/* Background icon */}
             <div className="absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 pointer-events-none">
-              <Activity size={100} md:size={120} className="text-green-400" strokeWidth={1} />
+              <Activity size={100} md:size={150} className="text-green-400" strokeWidth={1} />
             </div>
             <div className="card-dark p-4 md:p-6 relative z-10 h-full flex flex-col">
               <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 shrink-0">
@@ -327,41 +312,6 @@ const HubsList = ({ user, role }) => {
                   <p className="text-xs md:text-sm text-gray-600 py-4">No activity yet</p>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Featured Intel */}
-          <div className="relative overflow-hidden rounded-xl h-full">
-            {/* Background icon */}
-            <div className="absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 pointer-events-none">
-              <Megaphone size={100} md:size={120} className="text-purple-400" strokeWidth={1} />
-            </div>
-            <div className="card-dark p-4 md:p-6 relative z-10 h-full flex flex-col">
-              <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 shrink-0">
-                <Megaphone size={16} md:size={18} className="text-purple-400" />
-                <h3 className="text-sm md:text-base font-semibold text-white flex-1 text-center">Featured Intel</h3>
-              </div>
-              {featuredIntel ? (
-                <div className="flex-1 flex flex-col justify-center">
-                  <div className="mb-3">
-                    <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-purple-600/20 text-purple-400 rounded-full border border-purple-500/20">
-                      {featuredIntel.Category || 'BROADCAST'}
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-bold text-white mb-2 line-clamp-2 uppercase tracking-tight">{featuredIntel.Title}</h4>
-                  <p className="text-[11px] text-gray-400 line-clamp-4 leading-relaxed mb-4 italic">
-                    "{featuredIntel.Message}"
-                  </p>
-                  <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">● {featuredIntel.AuthorName || 'SYSTEM'}</span>
-                    <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">{new Date(featuredIntel.CreatedAt || Date.now()).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-xs text-gray-600 italic">No active broadcast signals.</p>
-                </div>
-              )}
             </div>
           </div>
 

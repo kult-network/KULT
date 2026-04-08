@@ -616,45 +616,7 @@ app.post('/api/featured-event', async (req, res) => {
     }
 });
 
-// Set featured intel (supervisor only)
-app.post('/api/featured-intel', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        const session = sessions.get(token);
-        
-        if (!session || session.role !== 'SUPERVISOR') {
-            return res.status(403).json({ error: "Only supervisors can set featured intel" });
-        }
-        
-        const { intelId } = req.body;
-        
-        // Unset current featured intel
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, {
-            headers: HEADERS,
-            params: { where: '(Featured,eq,true)' }
-        });
-        const currentFeatured = response.data.list || response.data || [];
-        if (Array.isArray(currentFeatured)) {
-            for (const intel of currentFeatured) {
-                await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}/${intel.Id || intel.id}`, {
-                    Featured: false
-                }, { headers: HEADERS });
-            }
-        }
-        
-        // Mark the selected intel as featured
-        if (intelId) {
-            await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}/${intelId}`, {
-                Featured: true
-            }, { headers: HEADERS });
-        }
-        
-        res.json({ success: true });
-    } catch (err) {
-        console.error("Failed to set featured intel:", err.message);
-        res.status(500).json({ error: "Failed to set featured intel" });
-    }
-});
+// Create notification/broadcast
 
 // Root check
 app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
