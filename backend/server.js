@@ -8,7 +8,12 @@ require('dotenv').config();
 const app = express();
 
 // --- 1.5 EMAIL CONFIGURATION ---
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend;
+if (process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+} else {
+    console.warn("⚠️ WARNING: RESEND_API_KEY is missing. Email functionality will be disabled.");
+}
 
 // --- 1. MIDDLEWARE & CORS ---
 app.use(cors());
@@ -28,9 +33,13 @@ const generateSessionToken = () => {
 };
 
 const sendEmail = async (to, subject, html) => {
+    if (!resend) {
+        console.error("Email send failed: Resend not initialized (missing API key)");
+        return false;
+    }
     try {
         await resend.emails.send({
-            from: `KULT Support <${process.env.RESEND_EMAIL_FROM}>`,
+            from: `KULT Support <${process.env.RESEND_EMAIL_FROM || 'onboarding@resend.dev'}>`,
             to: [to],
             subject: subject,
             html: html
