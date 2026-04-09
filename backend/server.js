@@ -2,32 +2,36 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
-const { Resend } = require('resend');
+const { Resend } = require('resend'); // Kept for compatibility if needed elsewhere
 require('dotenv').config();
 
 const app = express();
 
-// --- 1.5 EMAIL CONFIGURATION ---
-// Initializing inside a helper function prevents the "Missing API key" crash on Vercel boot
-const sendEmail = async (to, subject, html) => {
-    const apiKey = process.env.RESEND_API_KEY;
+// --- 1.5 EMAIL CONFIGURATION (BREVO API INTEGRATION) ---
+// This replaces the Nodemailer/Resend logic to prevent Vercel 502/500 errors.
+const sendEmail = async (to, subject, htmlContent) => {
+    // Your provided Brevo API Key
+    const BREVO_KEY = "xsmtpsib-37870a659a91f5fb6b4fcf5e1707d974788883624c60cfb0ae34e0b96d3c00a2-vUg7SwqgL2EYtyLO";
     
-    if (!apiKey) {
-        console.error("Email send failed: Resend not initialized (missing API key)");
-        return false;
-    }
-
     try {
-        const resendClient = new Resend(apiKey);
-        await resendClient.emails.send({
-            from: `KULT Support <${process.env.RESEND_EMAIL_FROM || 'onboarding@resend.dev'}>`,
-            to: [to],
+        await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { 
+                name: "KULT Support", 
+                email: "support.kult@gmail.com" 
+            },
+            to: [{ email: to }],
             subject: subject,
-            html: html
+            htmlContent: htmlContent
+        }, {
+            headers: {
+                'api-key': BREVO_KEY,
+                'Content-Type': 'application/json'
+            }
         });
+        console.log(`✅ Email sent to ${to} via Brevo`);
         return true;
     } catch (err) {
-        console.error("Email send failed:", err.message);
+        console.error("❌ Brevo Error:", err.response?.data || err.message);
         return false;
     }
 };
@@ -74,22 +78,19 @@ const logActivity = async (message, type = "GENERAL") => {
 
 // --- 4. OTP-AUTH ENDPOINTS ---
 
-// Send OTP (for login or signup)
 app.post('/api/auth/send-otp', async (req, res) => {
     const { email, action } = req.body;
     
     if (!email) return res.status(400).json({ error: "Email required" });
     
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         return res.status(400).json({ error: "Invalid email format" });
     }
     
     const otp = generateOTP();
-    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const expiry = Date.now() + 10 * 60 * 1000; 
     
-    // Store OTP with action (login or signup)
     otpStore.set(email.toLowerCase(), { otp, expiry, action: action || 'login' });
     
     const htmlContent = `
@@ -116,7 +117,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
     }
 });
 
-// Verify OTP and complete action (login/signup)
 app.post('/api/auth/verify-otp', async (req, res) => {
     const { email, otp, name } = req.body;
     
@@ -140,14 +140,11 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         return res.status(400).json({ error: "Invalid OTP" });
     }
     
-    // OTP is valid - clear it
     otpStore.delete(emailKey);
-    
     const action = stored.action || 'login';
     
     try {
         if (action === 'signup') {
-            // Check if user already exists
             const existingUser = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
                 params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
                 headers: HEADERS
@@ -158,7 +155,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
                 return res.status(400).json({ error: "Email already registered. Please login instead." });
             }
             
-            // Create new user with provided name
             const userName = name || email.split('@')[0];
             const newUser = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
                 "Email": email.toLowerCase().trim(),
@@ -166,7 +162,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
                 "Role": "USER"
             }, { headers: HEADERS });
             
-            // Create session
             const sessionToken = generateSessionToken();
             sessions.set(sessionToken, {
                 userId: newUser.data.id,
@@ -188,7 +183,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
             });
             
         } else {
-            // Login - find existing user
             const userRes = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
                 params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
                 headers: HEADERS
@@ -205,7 +199,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
                 });
             }
             
-            // Create session
             const sessionToken = generateSessionToken();
             sessions.set(sessionToken, {
                 userId: user.Id || user.id,
@@ -232,7 +225,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     }
 });
 
-// Verify session token
 app.get('/api/auth/verify', (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -245,7 +237,6 @@ app.get('/api/auth/verify', (req, res) => {
         return res.status(401).json({ error: "Invalid or expired session" });
     }
     
-    // Session expires after 7 days
     const sevenDays = 7 * 24 * 60 * 60 * 1000;
     if (Date.now() - session.createdAt > sevenDays) {
         sessions.delete(token);
@@ -262,7 +253,6 @@ app.get('/api/auth/verify', (req, res) => {
     });
 });
 
-// Logout
 app.post('/api/auth/logout', (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -273,9 +263,8 @@ app.post('/api/auth/logout', (req, res) => {
     res.json({ success: true });
 });
 
-// --- 5. EXISTING ROUTES ---
+// --- 5. HUBS & PROGRAMS ---
 
-// Get All Hubs
 app.get('/api/hubs', async (req, res) => {
     try {
         const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}`, { headers: HEADERS });
@@ -285,7 +274,6 @@ app.get('/api/hubs', async (req, res) => {
     }
 });
 
-// Create New Hub
 app.post('/api/hubs', async (req, res) => {
     try {
         const response = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}`, { ...req.body, Status: 'Active' }, { headers: HEADERS });
@@ -296,45 +284,17 @@ app.post('/api/hubs', async (req, res) => {
     }
 });
 
-// Host New Event
 app.post('/api/events', async (req, res) => {
     try {
         const {
-            Name,
-            Description,
-            Category,
-            start_time,
-            end_time,
-            Price,
-            Hub_ID,
-            Speaker,
-            Poster,
-            Itinerary,
-            Redirect_Link,
-            UPI_ID,
-            DL_Protocol
+            Name, Description, Category, start_time, end_time, Price, Hub_ID, Speaker, Poster, Itinerary, Redirect_Link, UPI_ID, DL_Protocol
         } = req.body;
 
-        const normalizedPrice = (() => {
-            if (typeof Price !== 'string') return Price;
-            const p = Price.trim().toUpperCase();
-            if (p === 'FREE') return 'Free';
-            if (p === 'PAID') return 'Paid';
-            return Price;
-        })();
+        const normalizedPrice = typeof Price === 'string' ? (Price.trim().toUpperCase() === 'FREE' ? 'Free' : 'Paid') : Price;
 
         let payloadData = {
-            "Title": Name,
-            "Description": Description,
-            "Category": Category,
-            "Speaker": Speaker,
-            "Poster": Poster,
-            "Itinerary": Itinerary,
-            "start_time": start_time,
-            "end_time": end_time,
-            "Price": normalizedPrice,
-            "UPI_ID": UPI_ID || "",
-            "DL_Protocol": DL_Protocol || "NO",
+            "Title": Name, "Description": Description, "Category": Category, "Speaker": Speaker, "Poster": Poster, "Itinerary": Itinerary,
+            "start_time": start_time, "end_time": end_time, "Price": normalizedPrice, "UPI_ID": UPI_ID || "", "DL_Protocol": DL_Protocol || "NO",
             "Hubs": Hub_ID ? [Hub_ID] : []
         };
         if (Redirect_Link) payloadData["Redirect_Link"] = Redirect_Link;
@@ -343,9 +303,7 @@ app.post('/api/events', async (req, res) => {
         await logActivity(`🚀 MISSION LIVE: ${Name?.toUpperCase()}`, "EVENT");
         res.json({ success: true, data: response.data });
     } catch (err) {
-        const details = err.response?.data || err.message;
-        console.error("Failed to host mission:", details);
-        res.status(500).json({ error: "Failed to host mission", details });
+        res.status(500).json({ error: "Failed to host mission" });
     }
 });
 
@@ -358,17 +316,17 @@ app.get('/api/hubs/:id/events', async (req, res) => {
         const allEvents = response.data.list || response.data || [];
         
         if (req.params.id === '0' || req.params.id === 'all') {
-            // Return all events
             res.json(allEvents);
         } else {
             const hubEvents = allEvents.filter(e => e.Hubs && e.Hubs.some(h => String(h.Id || h.id) === String(req.params.id)));
             res.json(hubEvents);
         }
     } catch (err) {
-        console.error("Failed to fetch hub events", err.response?.data || err.message);
         res.status(500).json({ error: "Failed to fetch hub events" });
     }
 });
+
+// --- 6. USER ROLES & TOKENS ---
 
 app.get('/api/user-role/:email', async (req, res) => {
     const { email } = req.params;
@@ -390,9 +348,7 @@ app.post('/api/user-role', async (req, res) => {
             headers: HEADERS
         });
         const list = getRes.data.list || getRes.data || [];
-        if (list.length > 0) {
-            return res.json({ success: true, data: list[0] });
-        }
+        if (list.length > 0) return res.json({ success: true, data: list[0] });
 
         const postRes = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
             "Email": email.toLowerCase().trim(),
@@ -402,7 +358,6 @@ app.post('/api/user-role', async (req, res) => {
         
         res.json({ success: true, data: postRes.data });
     } catch (err) {
-        console.error("Failed to sync user:", err.message);
         res.status(500).json({ error: "Failed to sync user" });
     }
 });
@@ -414,6 +369,8 @@ app.post('/api/tokens/generate', async (req, res) => {
         res.json({ success: true, token: newToken });
     } catch (err) { res.status(500).json({ error: "Token fail" }); }
 });
+
+// --- 7. POLLS & BOOKINGS ---
 
 app.post('/api/polls', async (req, res) => {
     try {
@@ -457,7 +414,6 @@ app.get('/api/bookings/event/:eventId', async (req, res) => {
         const eventBookings = allBookings.filter(b => String(b.Event_ID) === String(req.params.eventId));
         res.json(eventBookings);
     } catch (err) {
-        console.error("Failed to fetch event bookings", err.response?.data || err.message);
         res.status(500).json({ error: "Failed to fetch event bookings" });
     }
 });
@@ -472,9 +428,61 @@ app.get('/api/organizer-events/:email', async (req, res) => {
         const myEvents = allEvents.filter(e => e.Organizer_Email === req.params.email);
         res.json(myEvents);
     } catch (err) {
-        console.error("Failed to fetch organizer events", err.response?.data || err.message);
         res.status(500).json({ error: "Failed to fetch organizer events" });
     }
+});
+
+// --- 8. FEATURED & NOTIFICATIONS ---
+
+app.get('/api/featured-event', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
+            headers: HEADERS,
+            params: { limit: 100, sort: '-Id' }
+        });
+        const events = response.data.list || response.data || [];
+        const featured = events.find(e => e.Featured === true || e.Featured === 'true');
+        res.json(featured || null);
+    } catch (err) { res.json(null); }
+});
+
+app.post('/api/featured-event', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
+            headers: HEADERS,
+            params: { where: '(Featured,eq,true)' }
+        });
+        const currentFeatured = response.data.list || response.data || [];
+        for (const event of currentFeatured) {
+            await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${event.Id || event.id}`, { Featured: false }, { headers: HEADERS });
+        }
+        if (req.body.eventId) {
+            await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${req.body.eventId}`, { Featured: true }, { headers: HEADERS });
+        }
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "Failed to set featured event" }); }
+});
+
+app.get('/api/notifications', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, { 
+            headers: HEADERS, 
+            params: { limit: 50, sort: '-Id' } 
+        });
+        res.json(response.data.list || response.data || []);
+    } catch (err) {
+        res.json([{ Category: 'SYSTEM', Title: 'KULT ONLINE', Message: 'All systems operational.', Status: 'Active' }]);
+    }
+});
+
+app.post('/api/notifications', async (req, res) => {
+    try {
+        const { category, title, message, authorName, authorRole } = req.body;
+        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, {
+            "Category": category, "Title": title, "Message": message, "AuthorName": authorName, "AuthorRole": authorRole, "Status": "Active"
+        }, { headers: HEADERS });
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "Notification fail" }); }
 });
 
 app.get('/api/activity', async (req, res) => {
@@ -484,147 +492,10 @@ app.get('/api/activity', async (req, res) => {
     } catch (err) { res.status(500).json([]); }
 });
 
-// Featured Event endpoints
-app.get('/api/featured-event', async (req, res) => {
-    try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
-            headers: HEADERS,
-            params: { limit: 100, sort: '-Id' }
-        });
-        const events = response.data.list || response.data || [];
-        
-        // Only return event if explicitly marked as featured
-        const featured = events.find(e => e.Featured === true || e.Featured === 'true');
-        
-        if (featured) {
-            res.json(featured);
-        } else {
-            // No featured event set - return null (supervisor must set it)
-            res.json(null);
-        }
-    } catch (err) {
-        console.error("Failed to fetch featured event:", err.message);
-        res.json(null);
-    }
-});
-
-// Notifications endpoints
-app.get('/api/notifications', async (req, res) => {
-    try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, { 
-            headers: HEADERS, 
-            params: { limit: 50, sort: '-Id' } 
-        });
-        const list = response.data.list || response.data || [];
-        
-        if (list.length === 0) {
-            // Provide mock announcements if none exist
-            return res.json([
-                {
-                    Category: 'SYSTEM',
-                    Title: 'KULT ONLINE',
-                    Message: 'All systems operational. Welcome to the gateway.',
-                    Status: 'Active'
-                },
-                {
-                    Category: 'URGENT',
-                    Title: 'SECURITY PROTOCOL',
-                    Message: 'Ensure your access keys are secured. New encryption cycle starting soon.',
-                    Status: 'Active'
-                }
-            ]);
-        }
-        res.json(list);
-    } catch (err) {
-        console.log("Notifications table not found, using fallback");
-        res.json([
-            {
-                Category: 'SYSTEM',
-                Title: 'LOCAL MODE',
-                Message: 'Connected to local engine. Database sync pending.',
-                Status: 'Active'
-            }
-        ]);
-    }
-});
-
-// Post notification (organizer/supervisor only)
-app.post('/api/notifications', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        const session = sessions.get(token);
-        
-        if (!session || (session.role !== 'ORGANIZER' && session.role !== 'SUPERVISOR')) {
-            return res.status(403).json({ error: "Only organizers/supervisors can post notifications" });
-        }
-        
-        const { category, title, message, authorName, authorRole } = req.body;
-        
-        // Try to save to NocoDB, fallback to in-memory if table doesn't exist
-        await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, {
-            "Category": category,
-            "Title": title,
-            "Message": message,
-            "AuthorName": authorName,
-            "AuthorRole": authorRole,
-            "Status": "Active"
-        }, { headers: HEADERS });
-        
-        res.json({ success: true });
-    } catch (err) {
-        console.log("Notifications table not found, notification saved locally");
-        res.json({ success: true });
-    }
-});
-
-// Set featured event (supervisor only)
-app.post('/api/featured-event', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        const session = sessions.get(token);
-        
-        if (!session || session.role !== 'SUPERVISOR') {
-            return res.status(403).json({ error: "Only supervisors can set featured event" });
-        }
-        
-        const { eventId } = req.body;
-        
-        // Unset current featured event
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
-            headers: HEADERS,
-            params: { where: '(Featured,eq,true)' }
-        });
-        const currentFeatured = response.data.list || response.data || [];
-        if (Array.isArray(currentFeatured)) {
-            for (const event of currentFeatured) {
-                await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${event.Id || event.id}`, {
-                    Featured: false
-                }, { headers: HEADERS });
-            }
-        }
-        
-        // Mark the selected event as featured
-        if (eventId) {
-            await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${eventId}`, {
-                Featured: true
-            }, { headers: HEADERS });
-        }
-        
-        res.json({ success: true });
-    } catch (err) {
-        console.error("Failed to set featured event:", err.message);
-        res.status(500).json({ error: "Failed to set featured event" });
-    }
-});
-
-// Root check
 app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 
-// --- SERVER START ---
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 KULT ENGINE MASTER - ONLINE`);
-    console.log(`📡 LISTENING ON PORT: ${PORT}`);
-    console.log(`🔐 AUTH MODE: OTP-ONLY (no passwords)`);
+    console.log(`📡 PORT: ${PORT} | 🔐 BREVO API MODE`);
 });
