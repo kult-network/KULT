@@ -1,3 +1,3 @@
 export const API_BASE_URL = import.meta.env.DEV
-  ? (import.meta.env.VITE_API_URL || 'http://localhost:5001')
-  : '';
+  ? 'http://localhost:5001' 
+  : 'https://kult-production.up.railway.app'; // <--- Hardcode your Railway URL here
