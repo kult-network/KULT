@@ -5,8 +5,7 @@ import { Zap, Loader2, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Toast from '../components/Toast';
 
-// ✅ FIX: Use Vite env directly (NO external config file needed)
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+import { API_BASE_URL } from '../config/api';
 
 const Auth = () => {
   const [authMode, setAuthMode] = useState('login');
