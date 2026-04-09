@@ -14,10 +14,17 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // --- 1.5 EMAIL CONFIGURATION ---
 const emailTransporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // Use STARTTLS on port 587
+    family: 4, // Force IPv4 to avoid ENETUNREACH issues with IPv6
     auth: {
         user: process.env.EMAIL_USER || 'support.kult@gmail.com',
         pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2'
     }
 });
 
@@ -36,7 +43,7 @@ const generateSessionToken = () => {
 const sendEmail = async (to, subject, html) => {
     try {
         await emailTransporter.sendMail({
-            from: '"KULT Support" <support.kult@gmail.com>',
+            from: `"KULT Support" <${process.env.EMAIL_USER || 'support.kult@gmail.com'}>`,
             to: to,
             subject: subject,
             html: html
