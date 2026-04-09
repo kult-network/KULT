@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 if (!process.env.VERCEL) {
     require('dotenv').config();
 }
@@ -17,36 +18,33 @@ const app = express();
  * Ensure EMAIL_USER and EMAIL_PASS (App Password) are set in Vercel/Env.
  */
 const sendEmail = async (to, subject, htmlContent) => {
-    // Ensure this is set in your Vercel Environment Variables
-    const BREVO_KEY = process.env.BREVO_API_KEY;
+    const { EMAIL_USER, EMAIL_PASS } = process.env;
     
-    if (!BREVO_KEY) {
-        console.error("❌ Email failed: BREVO_API_KEY is missing in Vercel settings");
+    if (!EMAIL_USER || !EMAIL_PASS) {
+        console.error("❌ Email failed: EMAIL_USER or EMAIL_PASS is missing in environment settings");
         return false;
     }
 
     try {
-        // We use axios because HTTP requests are never blocked by Vercel
-        await axios.post('https://api.brevo.com/v3/smtp/email', {
-            sender: { 
-                name: "KULT Support", 
-                email: "support.kult@gmail.com" 
-            },
-            to: [{ email: to }],
-            subject: subject,
-            htmlContent: htmlContent
-        }, {
-            headers: {
-                'api-key': BREVO_KEY,
-                'Content-Type': 'application/json'
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: EMAIL_USER,
+                pass: EMAIL_PASS
             }
         });
+
+        await transporter.sendMail({
+            from: `"KULT Support" <${EMAIL_USER}>`,
+            to: to,
+            subject: subject,
+            html: htmlContent
+        });
         
-        console.log(`✅ Email sent to ${to} via Brevo API`);
+        console.log(`✅ Email sent to ${to} via Nodemailer`);
         return true;
     } catch (err) {
-        // Detailed logging to see if it's a verification issue
-        console.error("❌ Brevo API Error:", err.response?.data || err.message);
+        console.error("❌ Nodemailer Error:", err.message);
         return false;
     }
 };
