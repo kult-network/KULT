@@ -8,12 +8,29 @@ require('dotenv').config();
 const app = express();
 
 // --- 1.5 EMAIL CONFIGURATION ---
-let resend;
-if (process.env.RESEND_API_KEY) {
-    resend = new Resend(process.env.RESEND_API_KEY);
-} else {
-    console.warn("⚠️ WARNING: RESEND_API_KEY is missing. Email functionality will be disabled.");
-}
+// Initializing inside a helper function prevents the "Missing API key" crash on Vercel boot
+const sendEmail = async (to, subject, html) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    
+    if (!apiKey) {
+        console.error("Email send failed: Resend not initialized (missing API key)");
+        return false;
+    }
+
+    try {
+        const resendClient = new Resend(apiKey);
+        await resendClient.emails.send({
+            from: `KULT Support <${process.env.RESEND_EMAIL_FROM || 'onboarding@resend.dev'}>`,
+            to: [to],
+            subject: subject,
+            html: html
+        });
+        return true;
+    } catch (err) {
+        console.error("Email send failed:", err.message);
+        return false;
+    }
+};
 
 // --- 1. MIDDLEWARE & CORS ---
 app.use(cors());
@@ -32,25 +49,6 @@ const generateSessionToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
 
-const sendEmail = async (to, subject, html) => {
-    if (!resend) {
-        console.error("Email send failed: Resend not initialized (missing API key)");
-        return false;
-    }
-    try {
-        await resend.emails.send({
-            from: `KULT Support <${process.env.RESEND_EMAIL_FROM || 'onboarding@resend.dev'}>`,
-            to: [to],
-            subject: subject,
-            html: html
-        });
-        return true;
-    } catch (err) {
-        console.error("Email send failed:", err.message);
-        return false;
-    }
-};
-
 // --- 2. CONFIGURATION ---
 const NOCO_BASE_URL = "https://app.nocodb.com/api/v1/db/data/noco/pdo67xcuojyjxq5";
 const HEADERS = { 'xc-token': process.env.NOCO_TOKEN };
@@ -63,7 +61,7 @@ const TABLE_ID_ACTIVITY = "mu8han7k2m68xzs";
 const TABLE_ID_BOOKINGS = "mq28zf6dbmbnyhp";
 const TABLE_ID_TOKENS = "mc0b38mv8ao1a1o";
 const TABLE_ID_POLLS = "mc7vexszhan3k4r";
-const TABLE_ID_NOTIFICATIONS = "mvxwc3h19a4a0jw"; // Need to create this table
+const TABLE_ID_NOTIFICATIONS = "mvxwc3h19a4a0jw"; 
 
 // --- 3. HELPER FUNCTIONS ---
 const logActivity = async (message, type = "GENERAL") => {
@@ -618,8 +616,6 @@ app.post('/api/featured-event', async (req, res) => {
         res.status(500).json({ error: "Failed to set featured event" });
     }
 });
-
-// Create notification/broadcast
 
 // Root check
 app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
