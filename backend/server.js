@@ -3,9 +3,12 @@ const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer'); // Integrated Nodemailer
-if (process.env.NODE_ENV !== 'production') {
+if (!process.env.VERCEL) {
     require('dotenv').config();
 }
+
+// LOG TO VERCEL DASHBOARD (Delete this after it works)
+console.log("CRITICAL DEBUG: BREVO_API_KEY status ->", !!process.env.BREVO_API_KEY);
 
 const app = express();
 
