@@ -2,7 +2,6 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer'); // Integrated Nodemailer
 if (!process.env.VERCEL) {
     require('dotenv').config();
 }
@@ -38,7 +37,7 @@ const sendEmail = async (to, subject, htmlContent) => {
             htmlContent: htmlContent
         }, {
             headers: {
-                'api-key': BREVO_KEY,
+                'api-key': BREVO_API_KEY,
                 'Content-Type': 'application/json'
             }
         });
