@@ -4,7 +4,6 @@ import axios from 'axios';
 import { API_BASE_URL } from './config/api';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import AnnouncementPopup from './components/AnnouncementPopup';
 import Kultist from './components/Chatbot';
 import HubsList from './pages/HubsList';
 import HubDetails from './pages/HubDetails';
@@ -185,7 +184,6 @@ function App() {
             sidebarOpen={sidebarOpen}
             notifications={notifications}
           />
-          <AnnouncementPopup />
           <Kultist />
           <Sidebar 
             isOpen={sidebarOpen} 
