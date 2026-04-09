@@ -2,31 +2,18 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 const app = express();
+
+// --- 1.5 EMAIL CONFIGURATION ---
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // --- 1. MIDDLEWARE & CORS ---
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// --- 1.5 EMAIL CONFIGURATION ---
-const emailTransporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // Use STARTTLS on port 587
-    family: 4, // Force IPv4 to avoid ENETUNREACH issues with IPv6
-    auth: {
-        user: process.env.EMAIL_USER || 'support.kult@gmail.com',
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
-    }
-});
 
 // In-memory stores
 const otpStore = new Map(); // email -> { otp, expiry, action }
@@ -42,9 +29,9 @@ const generateSessionToken = () => {
 
 const sendEmail = async (to, subject, html) => {
     try {
-        await emailTransporter.sendMail({
-            from: `"KULT Support" <${process.env.EMAIL_USER || 'support.kult@gmail.com'}>`,
-            to: to,
+        await resend.emails.send({
+            from: `KULT Support <${process.env.RESEND_EMAIL_FROM}>`,
+            to: [to],
             subject: subject,
             html: html
         });
