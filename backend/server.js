@@ -3,7 +3,9 @@ const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer'); // Integrated Nodemailer
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config();
+}
 
 const app = express();
 
