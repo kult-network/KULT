@@ -11,7 +11,7 @@ const app = express();
 // This replaces the Nodemailer/Resend logic to prevent Vercel 502/500 errors.
 const sendEmail = async (to, subject, htmlContent) => {
     // Your provided Brevo API Key
-    const BREVO_KEY = "xsmtpsib-37870a659a91f5fb6b4fcf5e1707d974788883624c60cfb0ae34e0b96d3c00a2-vUg7SwqgL2EYtyLO";
+    const BREVO_KEY = process.env.BREVO_API_KEY;
     
     try {
         await axios.post('https://api.brevo.com/v3/smtp/email', {
