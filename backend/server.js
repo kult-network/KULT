@@ -509,8 +509,7 @@ app.get('/api/activity', async (req, res) => {
 
 app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 KULT ENGINE MASTER - ONLINE`);
-    console.log(`📡 PORT: ${PORT} | 🔐 NODEMAILER MODE`);
+    console.log(`🚀 KULT ENGINE MASTER - ONLINE ON PORT ${PORT}`);
 });
