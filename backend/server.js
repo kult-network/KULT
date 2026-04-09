@@ -2,36 +2,41 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
-const { Resend } = require('resend'); // Kept for compatibility if needed elsewhere
+const nodemailer = require('nodemailer'); // Integrated Nodemailer
 require('dotenv').config();
 
 const app = express();
 
-// --- 1.5 EMAIL CONFIGURATION (BREVO API INTEGRATION) ---
-// This replaces the Nodemailer/Resend logic to prevent Vercel 502/500 errors.
+// --- 1.5 EMAIL CONFIGURATION (NODEMAILER INTEGRATION) ---
+/**
+ * Using Nodemailer with Port 465 (SSL) for Vercel stability.
+ * Ensure EMAIL_USER and EMAIL_PASS (App Password) are set in Vercel/Env.
+ */
 const sendEmail = async (to, subject, htmlContent) => {
-    // Your provided Brevo API Key
-    const BREVO_KEY = process.env.BREVO_API_KEY;
-    
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // Use SSL
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+        connectionTimeout: 10000, 
+        socketTimeout: 10000,
+    });
+
     try {
-        await axios.post('https://api.brevo.com/v3/smtp/email', {
-            sender: { 
-                name: "KULT Support", 
-                email: "support.kult@gmail.com" 
-            },
-            to: [{ email: to }],
+        await transporter.sendMail({
+            from: `"KULT Support" <${process.env.EMAIL_USER}>`,
+            to: to,
             subject: subject,
-            htmlContent: htmlContent
-        }, {
-            headers: {
-                'api-key': BREVO_API_KEY,
-                'Content-Type': 'application/json'
-            }
+            html: htmlContent,
         });
-        console.log(`✅ Email sent to ${to} via Brevo`);
+        console.log(`✅ Email sent to ${to} via Nodemailer`);
         return true;
     } catch (err) {
-        console.error("❌ Brevo Error:", err.response?.data || err.message);
+        console.error("❌ Nodemailer Error:", err.message);
         return false;
     }
 };
@@ -497,5 +502,5 @@ app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 KULT ENGINE MASTER - ONLINE`);
-    console.log(`📡 PORT: ${PORT} | 🔐 BREVO API MODE`);
+    console.log(`📡 PORT: ${PORT} | 🔐 NODEMAILER MODE`);
 });
