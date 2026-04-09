@@ -17,16 +17,22 @@ const sendEmail = async (to, subject, htmlContent) => {
         service: 'gmail',
         host: 'smtp.gmail.com',
         port: 465,
-        secure: true, // Use SSL
+        secure: true, // SSL
+        pool: true,   // Use pooling for serverless performance
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
         },
-        connectionTimeout: 10000, 
-        socketTimeout: 10000,
+        // These timeouts are key for Vercel
+        connectionTimeout: 5000, 
+        greetingTimeout: 5000,
+        socketTimeout: 5000,
     });
 
     try {
+        // This 'verify' step forces the connection to happen immediately
+        await transporter.verify();
+        
         await transporter.sendMail({
             from: `"KULT Support" <${process.env.EMAIL_USER}>`,
             to: to,
@@ -37,6 +43,7 @@ const sendEmail = async (to, subject, htmlContent) => {
         return true;
     } catch (err) {
         console.error("❌ Nodemailer Error:", err.message);
+        // If it still timeouts, it's often because Vercel blocked the SMTP port.
         return false;
     }
 };
