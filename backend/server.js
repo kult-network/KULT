@@ -13,37 +13,36 @@ const app = express();
  * Ensure EMAIL_USER and EMAIL_PASS (App Password) are set in Vercel/Env.
  */
 const sendEmail = async (to, subject, htmlContent) => {
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, // SSL
-        pool: true,   // Use pooling for serverless performance
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-        },
-        // These timeouts are key for Vercel
-        connectionTimeout: 5000, 
-        greetingTimeout: 5000,
-        socketTimeout: 5000,
-    });
+    // Ensure this is set in your Vercel Environment Variables
+    const BREVO_KEY = process.env.BREVO_API_KEY;
+    
+    if (!BREVO_KEY) {
+        console.error("❌ Email failed: BREVO_API_KEY is missing in Vercel settings");
+        return false;
+    }
 
     try {
-        // This 'verify' step forces the connection to happen immediately
-        await transporter.verify();
-        
-        await transporter.sendMail({
-            from: `"KULT Support" <${process.env.EMAIL_USER}>`,
-            to: to,
+        // We use axios because HTTP requests are never blocked by Vercel
+        await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { 
+                name: "KULT Support", 
+                email: "support.kult@gmail.com" 
+            },
+            to: [{ email: to }],
             subject: subject,
-            html: htmlContent,
+            htmlContent: htmlContent
+        }, {
+            headers: {
+                'api-key': BREVO_KEY,
+                'Content-Type': 'application/json'
+            }
         });
-        console.log(`✅ Email sent to ${to} via Nodemailer`);
+        
+        console.log(`✅ Email sent to ${to} via Brevo API`);
         return true;
     } catch (err) {
-        console.error("❌ Nodemailer Error:", err.message);
-        // If it still timeouts, it's often because Vercel blocked the SMTP port.
+        // Detailed logging to see if it's a verification issue
+        console.error("❌ Brevo API Error:", err.response?.data || err.message);
         return false;
     }
 };
