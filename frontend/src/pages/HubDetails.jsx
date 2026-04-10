@@ -313,7 +313,7 @@ const getPosterUrl = (event) => {
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-[0.3em] max-w-xl">Request administrative clearance to host missions in this hub node.</p>
               </div>
               <div className="mt-10 lg:mt-0 flex flex-col sm:flex-row gap-6">
-                <a href={`mailto:support.kult@gmail.com?subject=KULT Node Access`} className="px-12 py-7 bg-slate-900/95 text-white rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3"><Mail size={20}/> Request Command</a>
+                <a href={`mailto:support@kultnetwork.in?subject=KULT Node Access`} className="px-12 py-7 bg-slate-900/95 text-white rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3"><Mail size={20}/> Request Command</a>
                 <Link to="/verify-token" className="px-12 py-7 bg-white/5 border border-white/10 rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3"><Key size={20}/> Enter Token</Link>
               </div>
             </div>
