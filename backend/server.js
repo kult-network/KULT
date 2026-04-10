@@ -27,9 +27,10 @@ const sendEmail = async (to, subject, htmlContent) => {
 
     try {
         const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            host: process.env.SMTP_HOST || 'smtp.hostinger.com',
             port: process.env.SMTP_PORT || 465,
             secure: true,
+            connectionTimeout: 10000,
             auth: {
                 user: EMAIL_USER,
                 pass: EMAIL_PASS
