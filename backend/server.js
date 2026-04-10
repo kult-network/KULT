@@ -17,56 +17,45 @@ const app = express();
  * Using Nodemailer with Port 465 (SSL) for Vercel stability.
  * Ensure EMAIL_USER and EMAIL_PASS (App Password) are set in Vercel/Env.
  */
-const sendEmail = async (to, subject, htmlContent) => {
-    const { EMAIL_USER, EMAIL_PASS } = process.env;
+import SibApiV3Sdk from "sib-api-v3-sdk";
 
-    if (!EMAIL_USER || !EMAIL_PASS) {
-        console.error("❌ Email credentials missing");
-        return false;
-    }
+// ✅ Initialize ONCE (outside function)
+const client = SibApiV3Sdk.ApiClient.instance;
+const apiKey = client.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
+const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
+
+export const sendEmail = async (to, subject, htmlContent) => {
     try {
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || "smtp.hostinger.com",
-            port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 2525,
+        // ✅ Validate ENV
+        if (!process.env.BREVO_API_KEY || !process.env.EMAIL_USER) {
+            throw new Error("Missing BREVO_API_KEY or EMAIL_USER");
+        }
 
-            // ✅ FIXED (IMPORTANT)
-            secure: false, // for port 587
+        // ✅ Validate input
+        if (!to) {
+            throw new Error("Recipient email is required");
+        }
 
-            auth: {
-                user: EMAIL_USER,
-                pass: EMAIL_PASS
+        const response = await emailApi.sendTransacEmail({
+            sender: {
+                email: process.env.EMAIL_USER,
+                name: "KULT Support" // 🔥 improves deliverability
             },
-
-            // ✅ FIX: Force IPv4 (your main issue)
-            family: 4,
-
-            // ✅ TLS config
-            tls: {
-                rejectUnauthorized: false
-            },
-
-            // ⏱️ stability
-            connectionTimeout: 10000,
-            greetingTimeout: 5000,
-            socketTimeout: 10000
-        });
-
-        // Optional but useful
-        await transporter.verify();
-
-        await transporter.sendMail({
-            from: `"KULT Support" <${EMAIL_USER}>`,
-            to,
+            to: [{ email: to }],
             subject,
-            html: htmlContent
+            htmlContent
         });
 
-        console.log(`✅ Email sent to ${to}`);
+        console.log("✅ Email sent:", response.messageId);
         return true;
 
     } catch (err) {
-        console.error("❌ Nodemailer FINAL ERROR:", err);
+        // 🔥 FULL DEBUG (VERY IMPORTANT)
+        console.error("❌ BREVO FULL ERROR:");
+        console.error(err.response?.body || err);
+
         return false;
     }
 };
