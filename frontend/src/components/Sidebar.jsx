@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Bell, Send, ChevronRight, Mail, Shield, LogOut, ShieldCheck, ExternalLink } from 'lucide-react';
+import { X, User, Bell, Send, ChevronRight, Mail, Shield, LogOut, ShieldCheck, ExternalLink, Crown } from 'lucide-react'; // ✅ Crown added
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -32,7 +32,6 @@ const Sidebar = ({ isOpen, onClose, user, role, notifications = [] }) => {
     }));
 
     if (isExpanding) {
-      // Mark all in this category as read
       const categoryNotifs = getNotificationsByCategory(categoryId);
       const newReadIds = categoryNotifs.map(n => n.id || n.Id).filter(id => !readNotifications.includes(id));
       if (newReadIds.length > 0) {
@@ -91,7 +90,6 @@ const Sidebar = ({ isOpen, onClose, user, role, notifications = [] }) => {
         Title: postData.title,
         Message: postData.message,
         Category: postData.category,
-        // Author fields are excluded here since they don't exist in your NocoDB yet
       }, {
         headers: { 
           'xc-token': NOCO_TOKEN,
@@ -123,6 +121,7 @@ const Sidebar = ({ isOpen, onClose, user, role, notifications = [] }) => {
   const getCategoryIcon = (id) => categories.find(c => c.id === id)?.icon || '📢';
 
   return (
+    // ✅ REST OF YOUR CODE EXACTLY SAME (unchanged)
     <AnimatePresence>
       {isOpen && (
         <>
