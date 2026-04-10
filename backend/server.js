@@ -17,7 +17,7 @@ const app = express();
  * Using Nodemailer with Port 465 (SSL) for Vercel stability.
  * Ensure EMAIL_USER and EMAIL_PASS (App Password) are set in Vercel/Env.
  */
-import SibApiV3Sdk from "sib-api-v3-sdk";
+const SibApiV3Sdk = require("sib-api-v3-sdk");
 
 // ✅ Initialize ONCE (outside function)
 const client = SibApiV3Sdk.ApiClient.instance;
