@@ -28,7 +28,7 @@ const sendEmail = async (to, subject, htmlContent) => {
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST || "smtp.hostinger.com",
-            port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+            port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 2525,
 
             // ✅ FIXED (IMPORTANT)
             secure: false, // for port 587
