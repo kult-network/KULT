@@ -21,30 +21,38 @@ const sendEmail = async (to, subject, htmlContent) => {
     const { EMAIL_USER, EMAIL_PASS } = process.env;
 
     if (!EMAIL_USER || !EMAIL_PASS) {
-        console.error("❌ Email failed: EMAIL_USER or EMAIL_PASS is missing");
+        console.error("❌ Email credentials missing");
         return false;
     }
 
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST || "smtp.hostinger.com",
-            port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
-            secure: true, // true for 465
+            port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+
+            // ✅ FIXED (IMPORTANT)
+            secure: false, // for port 587
+
             auth: {
                 user: EMAIL_USER,
                 pass: EMAIL_PASS
             },
 
-            // 🔥 FIX: Force IPv4 (solves ENETUNREACH)
+            // ✅ FIX: Force IPv4 (your main issue)
             family: 4,
 
-            // ⏱️ Better reliability
+            // ✅ TLS config
+            tls: {
+                rejectUnauthorized: false
+            },
+
+            // ⏱️ stability
             connectionTimeout: 10000,
             greetingTimeout: 5000,
             socketTimeout: 10000
         });
 
-        // ✅ Verify connection (helps debugging)
+        // Optional but useful
         await transporter.verify();
 
         await transporter.sendMail({
@@ -58,7 +66,7 @@ const sendEmail = async (to, subject, htmlContent) => {
         return true;
 
     } catch (err) {
-        console.error("❌ Nodemailer Error FULL:", err);
+        console.error("❌ Nodemailer FINAL ERROR:", err);
         return false;
     }
 };
