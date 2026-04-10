@@ -12,55 +12,56 @@ console.log("CRITICAL DEBUG: BREVO_API_KEY status ->", !!process.env.BREVO_API_K
 
 const app = express();
 
-// --- 1.5 EMAIL CONFIGURATION (NODEMAILER INTEGRATION) ---
-/**
- * Using Nodemailer with Port 465 (SSL) for Vercel stability.
- * Ensure EMAIL_USER and EMAIL_PASS (App Password) are set in Vercel/Env.
- */
-const SibApiV3Sdk = require("sib-api-v3-sdk");
+// ✅ Create transporter ONCE
+const transporter = nodemailer.createTransport({
+    host: "smtp.hostinger.com",
+    port: 587,              // ✅ Use 587 (NOT 465)
+    secure: false,          // ✅ false for 587
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
+    },
+    connectionTimeout: 20000
+});
 
-// ✅ Initialize ONCE (safe)
-const client = SibApiV3Sdk.ApiClient.instance;
-const apiKeyAuth = client.authentications["api-key"];
+// ✅ Verify connection on startup (optional but useful)
+transporter.verify((error, success) => {
+    if (error) {
+        console.error("❌ SMTP Connection Failed:", error.message);
+    } else {
+        console.log("✅ SMTP Server is ready");
+    }
+});
 
-const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-
+// ✅ Send Email Function
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        // ✅ ENV validation (VERY IMPORTANT)
-        if (!process.env.BREVO_API_KEY) {
-            throw new Error("BREVO_API_KEY is missing");
-        }
-
-        if (!process.env.EMAIL_USER) {
-            throw new Error("EMAIL_USER is missing");
+        // ✅ ENV validation
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+            throw new Error("EMAIL_USER or EMAIL_PASS missing");
         }
 
         if (!to) {
             throw new Error("Recipient email missing");
         }
 
-        // ✅ Set API key (inside function ensures fresh load)
-        apiKeyAuth.apiKey = process.env.BREVO_API_KEY;
-
-        const response = await emailApi.sendTransacEmail({
-            sender: {
-                email: process.env.EMAIL_USER,
-                name: "KULT Support"
-            },
-            to: [{ email: to }],
+        // ✅ Send mail
+        const info = await transporter.sendMail({
+            from: `"KULT Support" <${process.env.EMAIL_USER}>`,
+            to,
             subject,
-            htmlContent
+            html: htmlContent
         });
 
-        console.log("✅ Email sent:", response.messageId);
+        console.log("✅ Email sent:", info.messageId);
         return true;
 
     } catch (err) {
-        // 🔥 FULL DEBUG (this is key)
-        console.error("❌ BREVO FULL ERROR:");
-        console.error(err.response?.body || err.message || err);
-
+        console.error("❌ SMTP FULL ERROR:");
+        console.error(err.message || err);
         return false;
     }
 };
