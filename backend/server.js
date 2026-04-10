@@ -19,16 +19,29 @@ const app = express();
  */
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 
-// ✅ Initialize ONCE
+// ✅ Initialize ONCE (safe)
 const client = SibApiV3Sdk.ApiClient.instance;
-const apiKey = client.authentications["api-key"];
-apiKey.apiKey = process.env.BREVO_API_KEY;
+const apiKeyAuth = client.authentications["api-key"];
 
 const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        if (!to) throw new Error("Recipient email missing");
+        // ✅ ENV validation (VERY IMPORTANT)
+        if (!process.env.BREVO_API_KEY) {
+            throw new Error("BREVO_API_KEY is missing");
+        }
+
+        if (!process.env.EMAIL_USER) {
+            throw new Error("EMAIL_USER is missing");
+        }
+
+        if (!to) {
+            throw new Error("Recipient email missing");
+        }
+
+        // ✅ Set API key (inside function ensures fresh load)
+        apiKeyAuth.apiKey = process.env.BREVO_API_KEY;
 
         const response = await emailApi.sendTransacEmail({
             sender: {
@@ -44,7 +57,10 @@ const sendEmail = async (to, subject, htmlContent) => {
         return true;
 
     } catch (err) {
-        console.error("❌ BREVO ERROR:", err.response?.body || err);
+        // 🔥 FULL DEBUG (this is key)
+        console.error("❌ BREVO FULL ERROR:");
+        console.error(err.response?.body || err.message || err);
+
         return false;
     }
 };
