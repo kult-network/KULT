@@ -19,35 +19,46 @@ const app = express();
  */
 const sendEmail = async (to, subject, htmlContent) => {
     const { EMAIL_USER, EMAIL_PASS } = process.env;
-    
+
     if (!EMAIL_USER || !EMAIL_PASS) {
-        console.error("❌ Email failed: EMAIL_USER or EMAIL_PASS is missing in environment settings");
+        console.error("❌ Email failed: EMAIL_USER or EMAIL_PASS is missing");
         return false;
     }
 
     try {
         const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.hostinger.com',
-            port: process.env.SMTP_PORT || 465,
-            secure: true,
-            connectionTimeout: 10000,
+            host: process.env.SMTP_HOST || "smtp.hostinger.com",
+            port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
+            secure: true, // true for 465
             auth: {
                 user: EMAIL_USER,
                 pass: EMAIL_PASS
-            }
+            },
+
+            // 🔥 FIX: Force IPv4 (solves ENETUNREACH)
+            family: 4,
+
+            // ⏱️ Better reliability
+            connectionTimeout: 10000,
+            greetingTimeout: 5000,
+            socketTimeout: 10000
         });
+
+        // ✅ Verify connection (helps debugging)
+        await transporter.verify();
 
         await transporter.sendMail({
             from: `"KULT Support" <${EMAIL_USER}>`,
-            to: to,
-            subject: subject,
+            to,
+            subject,
             html: htmlContent
         });
-        
-        console.log(`✅ Email sent to ${to} via Nodemailer`);
+
+        console.log(`✅ Email sent to ${to}`);
         return true;
+
     } catch (err) {
-        console.error("❌ Nodemailer Error:", err.message);
+        console.error("❌ Nodemailer Error FULL:", err);
         return false;
     }
 };
@@ -81,7 +92,7 @@ const TABLE_ID_ACTIVITY = "mu8han7k2m68xzs";
 const TABLE_ID_BOOKINGS = "mq28zf6dbmbnyhp";
 const TABLE_ID_TOKENS = "mc0b38mv8ao1a1o";
 const TABLE_ID_POLLS = "mc7vexszhan3k4r";
-const TABLE_ID_NOTIFICATIONS = "mvxwc3h19a4a0jw"; 
+const TABLE_ID_NOTIFICATIONS = "mvxwc3h19a4a0jw";
 
 // --- 3. HELPER FUNCTIONS ---
 const logActivity = async (message, type = "GENERAL") => {
@@ -96,19 +107,19 @@ const logActivity = async (message, type = "GENERAL") => {
 
 app.post('/api/auth/send-otp', async (req, res) => {
     const { email, action } = req.body;
-    
+
     if (!email) return res.status(400).json({ error: "Email required" });
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         return res.status(400).json({ error: "Invalid email format" });
     }
-    
+
     const otp = generateOTP();
-    const expiry = Date.now() + 10 * 60 * 1000; 
-    
+    const expiry = Date.now() + 10 * 60 * 1000;
+
     otpStore.set(email.toLowerCase(), { otp, expiry, action: action || 'login' });
-    
+
     const htmlContent = `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -124,7 +135,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
             </div>
         </div>
     `;
-    
+
     const sent = await sendEmail(email, 'KULT - Your Verification Code', htmlContent);
     if (sent) {
         res.json({ success: true, message: "OTP sent to email" });
@@ -135,49 +146,49 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
 app.post('/api/auth/verify-otp', async (req, res) => {
     const { email, otp, name } = req.body;
-    
+
     if (!email || !otp) {
         return res.status(400).json({ error: "Email and OTP required" });
     }
-    
+
     const emailKey = email.toLowerCase();
     const stored = otpStore.get(emailKey);
-    
+
     if (!stored) {
         return res.status(400).json({ error: "No OTP requested. Please request a new code." });
     }
-    
+
     if (Date.now() > stored.expiry) {
         otpStore.delete(emailKey);
         return res.status(400).json({ error: "OTP expired. Please request a new code." });
     }
-    
+
     if (stored.otp !== otp) {
         return res.status(400).json({ error: "Invalid OTP" });
     }
-    
+
     otpStore.delete(emailKey);
     const action = stored.action || 'login';
-    
+
     try {
         if (action === 'signup') {
             const existingUser = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
                 params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
                 headers: HEADERS
             });
-            
+
             const existingList = existingUser.data.list || existingUser.data || [];
             if (existingList.length > 0) {
                 return res.status(400).json({ error: "Email already registered. Please login instead." });
             }
-            
+
             const userName = name || email.split('@')[0];
             const newUser = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
                 "Email": email.toLowerCase().trim(),
                 "Name": userName,
                 "Role": "USER"
             }, { headers: HEADERS });
-            
+
             const sessionToken = generateSessionToken();
             sessions.set(sessionToken, {
                 userId: newUser.data.id,
@@ -185,9 +196,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
                 role: 'USER',
                 createdAt: Date.now()
             });
-            
-            res.json({ 
-                success: true, 
+
+            res.json({
+                success: true,
                 action: 'signup',
                 token: sessionToken,
                 user: {
@@ -197,24 +208,24 @@ app.post('/api/auth/verify-otp', async (req, res) => {
                     role: 'USER'
                 }
             });
-            
+
         } else {
             const userRes = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
                 params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
                 headers: HEADERS
             });
-            
+
             const userList = userRes.data.list || userRes.data || [];
             const users = Array.isArray(userList) ? userList : [userList];
             const user = users.find(u => u && u.Email && u.Email.toLowerCase() === email.toLowerCase().trim());
-            
+
             if (!user) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     error: "Account not found. Please sign up first.",
-                    needsSignup: true 
+                    needsSignup: true
                 });
             }
-            
+
             const sessionToken = generateSessionToken();
             sessions.set(sessionToken, {
                 userId: user.Id || user.id,
@@ -222,9 +233,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
                 role: user.Role || 'USER',
                 createdAt: Date.now()
             });
-            
-            res.json({ 
-                success: true, 
+
+            res.json({
+                success: true,
                 action: 'login',
                 token: sessionToken,
                 user: {
@@ -243,24 +254,24 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
 app.get('/api/auth/verify', (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
         return res.status(401).json({ error: "No token provided" });
     }
-    
+
     const session = sessions.get(token);
     if (!session) {
         return res.status(401).json({ error: "Invalid or expired session" });
     }
-    
+
     const sevenDays = 7 * 24 * 60 * 60 * 1000;
     if (Date.now() - session.createdAt > sevenDays) {
         sessions.delete(token);
         return res.status(401).json({ error: "Session expired" });
     }
-    
-    res.json({ 
-        valid: true, 
+
+    res.json({
+        valid: true,
         user: {
             userId: session.userId,
             email: session.email,
@@ -271,11 +282,11 @@ app.get('/api/auth/verify', (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (token && sessions.has(token)) {
         sessions.delete(token);
     }
-    
+
     res.json({ success: true });
 });
 
@@ -330,7 +341,7 @@ app.get('/api/hubs/:id/events', async (req, res) => {
             params: { limit: 100, sort: '-Id' }
         });
         const allEvents = response.data.list || response.data || [];
-        
+
         if (req.params.id === '0' || req.params.id === 'all') {
             res.json(allEvents);
         } else {
@@ -371,7 +382,7 @@ app.post('/api/user-role', async (req, res) => {
             "Name": name || email.split('@')[0],
             "Role": role || 'USER'
         }, { headers: HEADERS });
-        
+
         res.json({ success: true, data: postRes.data });
     } catch (err) {
         res.status(500).json({ error: "Failed to sync user" });
@@ -481,9 +492,9 @@ app.post('/api/featured-event', async (req, res) => {
 
 app.get('/api/notifications', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, { 
-            headers: HEADERS, 
-            params: { limit: 50, sort: '-Id' } 
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_NOTIFICATIONS}`, {
+            headers: HEADERS,
+            params: { limit: 50, sort: '-Id' }
         });
         res.json(response.data.list || response.data || []);
     } catch (err) {
