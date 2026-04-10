@@ -47,9 +47,6 @@ const Kultist = () => {
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
-      console.log("KULTIST AI: OpenRouter Key Status:", !!OPENROUTER_API_KEY ? "CONFIGURED (Length: " + OPENROUTER_API_KEY.length + ")" : "MISSING");
-    }
   }, [isOpen]);
 
   const sarcasticPunchlines = [
@@ -75,7 +72,6 @@ const Kultist = () => {
     // If OpenRouter API Key is available, use it. Otherwise, use sarcastic fallback.
     if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== "") {
       try {
-        console.log("📡 KULTIST AI: Sending intel request via OpenRouter...");
         // Prepare context for AI
         const eventsContext = data.events.map(e => `- ${e.Title}: ${e.Description || 'No description'}`).join('\n');
         const notificationsContext = data.notifications.map(n => `- ${n.Title}: ${n.Message || 'No message'}`).join('\n');

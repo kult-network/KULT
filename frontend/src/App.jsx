@@ -14,6 +14,7 @@ import VerifyToken from './pages/VerifyToken';
 import SupervisorPanel from './pages/SupervisorPanel'; 
 import Onboarding from './pages/Onboarding';
 import OrganizerDashboard from './pages/OrganizerDashboard';
+import OrganizerPanel from './pages/OrganizerPanel';
 
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -71,7 +72,7 @@ function App() {
       }
     };
     fetchAllNotifications();
-    const interval = setInterval(fetchAllNotifications, 60000); // Refresh every minute
+    const interval = setInterval(fetchAllNotifications, 300000); // Increased to 5 minutes to prevent background activity
     return () => clearInterval(interval);
   }, []);
 
@@ -90,7 +91,15 @@ function App() {
       { primary: '#1f2937', secondary: '#64748b', accent: '#22c55e', accentBg: 'rgba(34, 197, 94, 0.08)', accentBorder: 'rgba(34, 197, 94, 0.24)', shadow: 'rgba(34, 197, 94, 0.18)', border: '#dcfce7' },
       { primary: '#111827', secondary: '#475569', accent: '#f97316', accentBg: 'rgba(249, 115, 22, 0.08)', accentBorder: 'rgba(249, 115, 22, 0.24)', shadow: 'rgba(249, 115, 22, 0.18)', border: '#fed7aa' }
     ];
-    const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+    
+    // Persist palette to avoid "flicker" on background refresh
+    let paletteIndex = localStorage.getItem('kult_palette_index');
+    if (paletteIndex === null) {
+      paletteIndex = Math.floor(Math.random() * colorPalettes.length);
+      localStorage.setItem('kult_palette_index', paletteIndex);
+    }
+    const palette = colorPalettes[parseInt(paletteIndex)];
+    
     const root = document.documentElement.style;
     root.setProperty('--text-primary', palette.primary);
     root.setProperty('--text-secondary', palette.secondary);
@@ -113,21 +122,26 @@ function App() {
       
       if (token && storedUser) {
         try {
+          // Immediately set user from local storage to prevent blank screen
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          setRole(userData.role || 'USER');
+
           const res = await axios.get(`${API_BASE_URL}/api/auth/verify`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           
           if (res.data.valid) {
-            const userData = JSON.parse(storedUser);
-            setUser(userData);
             setRole(res.data.user.role || userData.role || 'USER');
           } else {
             localStorage.removeItem('kult_token');
             localStorage.removeItem('kult_user');
+            setUser(null);
+            setRole(null);
           }
         } catch (err) {
-          localStorage.removeItem('kult_token');
-          localStorage.removeItem('kult_user');
+          // Silent fail on background check to avoid interruption
+          console.error("Auth verify error:", err);
         }
       }
     };
@@ -142,7 +156,8 @@ function App() {
   }, [minLoadingTimePassed]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setMinLoadingTimePassed(true), 2000);
+    // Reduced forced loader time from 2000ms to 500ms for snappier mobile experience
+    const timer = setTimeout(() => setMinLoadingTimePassed(true), 500);
     return () => clearTimeout(timer);
   }, []);
 

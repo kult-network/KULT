@@ -15,7 +15,7 @@ const strip = (s) => s.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '').replace(/\/\*[
     try {
       const c = fs.readFileSync(f, 'utf8');
       const s = strip(c);
-      if(c !== s) { fs.writeFileSync(f, s); console.log("Cleaned " + f); }
+      if(c !== s) { fs.writeFileSync(f, s); }
     } catch(e) {}
   });
 });

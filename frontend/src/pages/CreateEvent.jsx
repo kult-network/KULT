@@ -10,10 +10,11 @@ const CreateEvent = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const hubIdFromUrl = searchParams.get('hubId');
+  const editEventId = searchParams.get('edit');
   
   const [hubs, setHubs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [posterFile, setPosterFile] = useState(null); // Actual file object
+  const [posterFile, setPosterFile] = useState(null);
   const [posterPreview, setPosterPreview] = useState(null);
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
   const [priceType, setPriceType] = useState("FREE");
@@ -29,7 +30,6 @@ const CreateEvent = () => {
     dl_provided: false,
     start_time: '',
     end_time: '',
-    // FIXED: Removed the invalid Poster reference here
     Redirect_Link: ''
   });
 
@@ -38,7 +38,42 @@ const CreateEvent = () => {
         const data = Array.isArray(res.data) ? res.data : res.data.list || [];
         setHubs(data);
     });
-  }, []);
+
+    if (editEventId) {
+      const fetchEventDetails = async () => {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/events/${editEventId}`);
+          const event = res.data;
+          setFormData({
+            Title: event.Title || event.Name || '',
+            Speaker: event.Speaker || '',
+            Category: event.Category || 'Workshops',
+            Description: event.Description || '',
+            Hubs: event.Hubs && event.Hubs.length > 0 ? [event.Hubs[0].Id || event.Hubs[0].id] : [],
+            dl_provided: event.DL_Protocol === 'YES',
+            start_time: event.start_time ? event.start_time.slice(0, 16) : '',
+            end_time: event.end_time ? event.end_time.slice(0, 16) : '',
+            Redirect_Link: event.Redirect_Link || ''
+          });
+          setPriceType(event.Price === 'Paid' || event.Price === 'PAID' ? 'PAID' : 'FREE');
+          if (event.Poster) setPosterPreview(event.Poster);
+          if (event.Itinerary) {
+            try {
+              const parsedItinerary = JSON.parse(event.Itinerary);
+              if (Array.isArray(parsedItinerary) && parsedItinerary.length > 0) {
+                setItinerary(parsedItinerary);
+                setShowItinerary(true);
+              }
+            } catch (e) { console.error("Failed to parse itinerary", e); }
+          }
+        } catch (err) {
+          console.error("Failed to fetch event details for edit", err);
+          showToast("FAILED TO LOAD MISSION DATA", "error");
+        }
+      };
+      fetchEventDetails();
+    }
+  }, [editEventId]);
 
   const showToast = (msg, type = 'success') => setToast({ show: true, msg, type });
 
@@ -102,17 +137,20 @@ const CreateEvent = () => {
         Hub_ID: formData.Hubs[0],
         Organizer_Email: "commander@kult.network",
         Itinerary: showItinerary ? JSON.stringify(itinerary.filter(i => i.time || i.activity)) : null,
-        
-        // FIXED: Using Capital 'P' as requested previously for NocoDB
-        Poster: finalPosterUrl, 
-        
+        Poster: finalPosterUrl || posterPreview, 
         Redirect_Link: priceType === "PAID" ? formData.Redirect_Link : ""
       };
 
-      const res = await axios.post(`${API_BASE_URL}/api/events`, payload);
+      let res;
+      if (editEventId) {
+        res = await axios.patch(`${API_BASE_URL}/api/events/${editEventId}`, payload);
+      } else {
+        res = await axios.post(`${API_BASE_URL}/api/events`, payload);
+      }
+
       if (res.data.success) {
-        showToast("MISSION DEPLOYED! 🛰️", "success");
-        setTimeout(() => { navigate(`/hub/${formData.Hubs[0]}`); }, 1500);
+        showToast(editEventId ? "MISSION UPDATED! 📝" : "MISSION DEPLOYED! 🛰️", "success");
+        setTimeout(() => { navigate(editEventId ? -1 : `/hub/${formData.Hubs[0]}`); }, 1500);
       }
     } catch (err) {
       console.error(err);

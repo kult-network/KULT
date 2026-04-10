@@ -16,7 +16,6 @@ async function test() {
     };
     try {
         const res = await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, payloadData, { headers: HEADERS });
-        console.log(res.data);
     } catch (err) {
         console.error(err.response?.data);
     }

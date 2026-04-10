@@ -36,7 +36,6 @@ const OrganizerDashboard = () => {
       return;
     }
     try {
-      console.log(`📡 Sending Patch for ID: ${id} -> Status: ${newStatus}`);
       const res = await axios.patch(`${API_BASE_URL}/api/bookings/${id}`, { 
         Status: newStatus 
       });

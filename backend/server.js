@@ -7,9 +7,6 @@ if (!process.env.VERCEL) {
     require('dotenv').config();
 }
 
-// LOG TO VERCEL DASHBOARD (Delete this after it works)
-console.log("CRITICAL DEBUG: BREVO_API_KEY status ->", !!process.env.BREVO_API_KEY);
-
 const app = express();
 
 // ✅ Create transporter ONCE
@@ -31,8 +28,6 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
     if (error) {
         console.error("❌ SMTP Connection Failed:", error.message);
-    } else {
-        console.log("✅ SMTP Server is ready");
     }
 });
 
@@ -56,7 +51,6 @@ const sendEmail = async (to, subject, htmlContent) => {
             html: htmlContent
         });
 
-        console.log("✅ Email sent:", info.messageId);
         return true;
 
     } catch (err) {
@@ -340,6 +334,48 @@ app.post('/api/events', async (req, res) => {
     }
 });
 
+app.get('/api/events/:id', async (req, res) => {
+    try {
+        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${req.params.id}`, { headers: HEADERS });
+        res.json(response.data);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch mission details" });
+    }
+});
+
+app.patch('/api/events/:id', async (req, res) => {
+    try {
+        const {
+            Name, Description, Category, start_time, end_time, Price, Hub_ID, Speaker, Poster, Itinerary, Redirect_Link, UPI_ID, DL_Protocol
+        } = req.body;
+
+        const normalizedPrice = typeof Price === 'string' ? (Price.trim().toUpperCase() === 'FREE' ? 'Free' : 'Paid') : Price;
+
+        let payloadData = {
+            "Title": Name, "Description": Description, "Category": Category, "Speaker": Speaker, "Poster": Poster, "Itinerary": Itinerary,
+            "start_time": start_time, "end_time": end_time, "Price": normalizedPrice, "UPI_ID": UPI_ID || "", "DL_Protocol": DL_Protocol || "NO",
+            "Hubs": Hub_ID ? [Hub_ID] : []
+        };
+        if (Redirect_Link) payloadData["Redirect_Link"] = Redirect_Link;
+
+        const response = await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${req.params.id}`, payloadData, { headers: HEADERS });
+        await logActivity(`📝 MISSION UPDATED: ${Name?.toUpperCase()}`, "EVENT");
+        res.json({ success: true, data: response.data });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to update mission" });
+    }
+});
+
+app.delete('/api/events/:id', async (req, res) => {
+    try {
+        await axios.delete(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${req.params.id}`, { headers: HEADERS });
+        await logActivity(`🗑️ MISSION SCRUBBED: ID ${req.params.id}`, "EVENT");
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to abort mission" });
+    }
+});
+
 app.get('/api/hubs/:id/events', async (req, res) => {
     try {
         const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
@@ -401,6 +437,61 @@ app.post('/api/tokens/generate', async (req, res) => {
         await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_TOKENS}`, { Token: newToken, Status: 'Unused' }, { headers: HEADERS });
         res.json({ success: true, token: newToken });
     } catch (err) { res.status(500).json({ error: "Token fail" }); }
+});
+
+app.post('/api/verify-organizer', async (req, res) => {
+    const { email, token, name } = req.body;
+    
+    if (!email || !token) {
+        return res.status(400).json({ error: "Email and Token are required" });
+    }
+
+    try {
+        // 1. Check if token is valid and unused
+        const tokenRes = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_TOKENS}`, {
+            params: { where: `(Token,eq,${token.trim().toUpperCase()})~and(Status,eq,Unused)` },
+            headers: HEADERS
+        });
+
+        const tokenList = tokenRes.data.list || tokenRes.data || [];
+        if (tokenList.length === 0) {
+            return res.status(400).json({ message: "Invalid or already used token!" });
+        }
+
+        const tokenRecord = tokenList[0];
+
+        // 2. Find the user
+        const userRes = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_USERS}`, {
+            params: { where: `(Email,eq,${email.toLowerCase().trim()})` },
+            headers: HEADERS
+        });
+
+        const userList = userRes.data.list || userRes.data || [];
+        if (userList.length === 0) {
+            return res.status(404).json({ message: "User not found!" });
+        }
+
+        const userRecord = userList[0];
+
+        // 3. Update user role to ORGANIZER
+        await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_USERS}/${userRecord.Id || userRecord.id}`, {
+            Role: 'ORGANIZER'
+        }, { headers: HEADERS });
+
+        // 4. Mark token as used
+        await axios.patch(`${NOCO_BASE_URL}/${TABLE_ID_TOKENS}/${tokenRecord.Id || tokenRecord.id}`, {
+            Status: 'Used'
+        }, { headers: HEADERS });
+
+        // 5. Log activity
+        await logActivity(`👑 UPGRADE: ${name || email} is now an ORGANIZER`, "SECURITY");
+
+        res.json({ success: true, message: "Clearance granted! Role upgraded." });
+
+    } catch (err) {
+        console.error("Organizer verification error:", err.message);
+        res.status(500).json({ message: "Verification failed. Internal error." });
+    }
 });
 
 // --- 7. POLLS & BOOKINGS ---
@@ -529,5 +620,4 @@ app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 KULT ENGINE MASTER - ONLINE ON PORT ${PORT}`);
 });

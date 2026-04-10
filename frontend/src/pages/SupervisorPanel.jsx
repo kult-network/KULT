@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Key, Copy, Check, Globe, Plus, ArrowLeft, Loader2, ShieldAlert, MessageSquare, BarChart3, Star, Megaphone } from 'lucide-react';
+import { Zap, Key, Copy, Check, Globe, Plus, ArrowLeft, Loader2, ShieldAlert, MessageSquare, BarChart3, Star, Megaphone, Trash2, Edit3, AlertTriangle, Calendar, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Toast from '../components/Toast'; 
+
 const SupervisorPanel = () => {
   const [tokens, setTokens] = useState([]);
   const [events, setEvents] = useState([]);
@@ -14,11 +15,30 @@ const SupervisorPanel = () => {
   const [newHub, setNewHub] = useState({ Name: '', Location: '', Tagline: '' });
   const [pollData, setPollData] = useState({ Question: '', OptionA: '', OptionB: '' });
   const [selectedEventId, setSelectedEventId] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
+
   const showToast = (msg, type = 'success') => {
     setToast({ show: true, msg, type });
   };
+
+  const fetchEvents = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/hubs/0/events`);
+      const data = res.data || [];
+      setEvents(Array.isArray(data) ? data : []);
+    } catch (err) { 
+      console.error("Failed to fetch events:", err);
+      try {
+        const res2 = await axios.get(`${API_BASE_URL}/api/hubs`);
+        const data2 = res2.data.list || res2.data || [];
+        setEvents(Array.isArray(data2) ? data2 : []);
+      } catch (err2) { console.error("Fallback also failed:", err2); }
+    }
+  };
+
   const fetchTokens = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/tokens`);
@@ -26,27 +46,28 @@ const SupervisorPanel = () => {
       setTokens([...data]); 
     } catch (err) { console.error("❌ Vault Sync Fail", err); }
   };
-  // Fetch events for featured selection
+
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/api/hubs/0/events`);
-        const data = res.data || [];
-        setEvents(Array.isArray(data) ? data : []);
-      } catch (err) { 
-        console.error("Failed to fetch events:", err);
-        // Fallback: try direct endpoint
-        try {
-          const res2 = await axios.get(`${API_BASE_URL}/api/hubs`);
-          const data2 = res2.data.list || res2.data || [];
-          setEvents(Array.isArray(data2) ? data2 : []);
-        } catch (err2) { console.error("Fallback also failed:", err2); }
-      }
-    };
     fetchEvents();
+    fetchTokens();
   }, []);
 
-  useEffect(() => { fetchTokens(); }, []);
+  const handleDeleteEvent = async (eventId) => {
+    setIsDeleting(true);
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/api/events/${eventId}`);
+      if (res.data.success) {
+        showToast("MISSION SCRUBBED BY SUPERVISOR", "success");
+        setEvents(events.filter(e => e.Id !== eventId && e.id !== eventId));
+        setDeleteConfirm(null);
+      }
+    } catch (err) {
+      showToast("SCRUB FAILED", "error");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const generateToken = async () => {
     setLoading(true);
     setNewlyGeneratedToken(""); 
@@ -60,6 +81,7 @@ const SupervisorPanel = () => {
     } catch { showToast("ENCRYPTION FAILED", "error"); }
     finally { setLoading(false); }
   };
+
   const handleAddHub = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -70,6 +92,7 @@ const SupervisorPanel = () => {
     } catch { showToast("HUB DEPLOYMENT FAILED", "error"); }
     finally { setLoading(false); }
   };
+
   const handleCreatePoll = async (e) => {
     e.preventDefault();
     if (!pollData.Question || !pollData.OptionA || !pollData.OptionB) return showToast("FILL ALL FIELDS", "error");
@@ -81,6 +104,7 @@ const SupervisorPanel = () => {
     } catch { showToast("POLL BROADCAST FAILED", "error"); }
     finally { setLoading(false); }
   };
+
   const copyToClipboard = (txt) => {
     navigator.clipboard.writeText(txt);
     setCopied(txt);
@@ -105,9 +129,11 @@ const SupervisorPanel = () => {
       setLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-12 font-sharp relative overflow-x-hidden">
       <Toast isVisible={toast.show} message={toast.msg} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
+      
       <div className="max-w-7xl mx-auto flex justify-between items-center mb-16 relative z-10">
         <button onClick={() => navigate('/')} className="flex items-center gap-2 text-purple-400 hover:text-purple-300 uppercase font-black text-[10px] tracking-[0.4em] transition-all">
           <ArrowLeft size={16} /> EXIT COMMAND
@@ -116,13 +142,63 @@ const SupervisorPanel = () => {
           <ShieldAlert size={14} /> RESTRICTED OVERSIGHT ACCESS
         </div>
       </div>
+
       <header className="max-w-7xl mx-auto mb-20 relative z-10">
         <h1 className="text-6xl font-black font-sporty uppercase italic tracking-tighter leading-none text-white neon-glow">
           <span className="text-purple-400">CONTROL</span> <span className="text-purple-600">GATEWAY</span>
         </h1>
         <p className="text-[10px] font-black text-purple-300 uppercase tracking-[0.6em] mt-4">Administrative Oversight & Network Management</p>
       </header>
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10 pb-20">
+        {/* Global Mission Control */}
+        <section className="lg:col-span-2 bg-white/[0.02] p-10 rounded-[50px] border border-white/5 backdrop-blur-3xl shadow-2xl space-y-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-4 bg-purple-600 rounded-2xl shadow-lg shadow-purple-600/20"><Globe size={24} /></div>
+              <h2 className="text-2xl font-black uppercase italic text-purple-100 neon-glow">Global Mission Control</h2>
+            </div>
+            <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest">{events.length} ACTIVE MISSIONS</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {events.map((event, i) => (
+              <motion.div 
+                key={event.Id || event.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-black/40 border border-white/5 rounded-3xl p-6 hover:border-purple-500/30 transition-all group"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-10 h-10 bg-purple-600/20 text-purple-400 rounded-xl flex items-center justify-center font-black italic">
+                    {event.Name?.[0] || event.Title?.[0]}
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => navigate(`/host-event?edit=${event.Id || event.id}`)}
+                      className="p-2 bg-white/5 hover:bg-blue-600 rounded-lg transition-all"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                    <button 
+                      onClick={() => setDeleteConfirm(event.Id || event.id)}
+                      className="p-2 bg-white/5 hover:bg-red-600 rounded-lg transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-tighter mb-2 line-clamp-1">{event.Name || event.Title}</h3>
+                <div className="flex items-center gap-3 text-gray-500 text-[8px] font-bold uppercase tracking-widest">
+                  <span className="flex items-center gap-1"><Calendar size={10} /> {event.start_time?.split('T')[0]}</span>
+                  <span className="flex items-center gap-1 text-purple-400"><Users size={10} /> {event.Organizer_Email?.split('@')[0]}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
         <section className="bg-white/[0.02] p-10 rounded-[50px] border border-white/5 backdrop-blur-3xl shadow-2xl space-y-10">
           <div className="flex items-center gap-3">
             <div className="p-4 bg-purple-600 rounded-2xl shadow-lg shadow-purple-600/20"><Globe size={24} /></div>
@@ -201,7 +277,7 @@ const SupervisorPanel = () => {
                 <option value="">SELECT AN EVENT</option>
                 {events.map(event => (
                   <option key={event.Id || event.id} value={event.Id || event.id}>
-                    {event.Name}
+                    {event.Name || event.Title}
                   </option>
                 ))}
               </select>
@@ -246,9 +322,48 @@ const SupervisorPanel = () => {
           <MessageSquare className="absolute -bottom-10 -right-10 text-white/[0.02] w-64 h-64" />
         </section>
       </div>
+
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[500] bg-black/90 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className="max-w-md w-full bg-slate-900 border border-red-500/20 p-10 rounded-[40px] text-center"
+            >
+              <div className="w-20 h-20 bg-red-600/10 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                <AlertTriangle size={40} />
+              </div>
+              <h2 className="text-3xl font-black uppercase italic mb-4">Confirm Scrub?</h2>
+              <p className="text-gray-500 font-bold text-[10px] uppercase tracking-[0.2em] mb-10 leading-relaxed">
+                As a Supervisor, you are about to permanently abort this mission. This will remove it from the global network feed.
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 py-5 bg-white/5 hover:bg-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => handleDeleteEvent(deleteConfirm)}
+                  disabled={isDeleting}
+                  className="flex-1 py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? <Loader2 className="animate-spin" size={16} /> : "Authorize Scrub"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-purple-600/5 rounded-full blur-[150px] pointer-events-none animate-pulse"></div>
       <div className="fixed bottom-0 left-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[150px] pointer-events-none animate-pulse" style={{ animationDelay: '1s' }}></div>
     </div>
   );
 };
+
 export default SupervisorPanel;
