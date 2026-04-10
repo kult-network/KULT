@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Note: In a production environment, you should use a backend to securely call the Gemini API.
 // For this task, we are calling the OpenRouter API from the client-side for demonstration.
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
 
 const Kultist = () => {
   const [isOpen, setIsOpen] = useState(false);
