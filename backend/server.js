@@ -19,9 +19,7 @@ const app = express();
  */
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 
-// ✅ Initialize ONCE (outside function)
-const SibApiV3Sdk = require("sib-api-v3-sdk");
-
+// ✅ Initialize ONCE
 const client = SibApiV3Sdk.ApiClient.instance;
 const apiKey = client.authentications["api-key"];
 apiKey.apiKey = process.env.BREVO_API_KEY;
@@ -30,6 +28,8 @@ const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 const sendEmail = async (to, subject, htmlContent) => {
     try {
+        if (!to) throw new Error("Recipient email missing");
+
         const response = await emailApi.sendTransacEmail({
             sender: {
                 email: process.env.EMAIL_USER,
@@ -49,6 +49,7 @@ const sendEmail = async (to, subject, htmlContent) => {
     }
 };
 
+// ✅ export (important if used in other files)
 module.exports = sendEmail;
 
 // --- 1. MIDDLEWARE & CORS ---
