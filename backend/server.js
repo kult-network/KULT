@@ -20,28 +20,20 @@ const app = express();
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 
 // ✅ Initialize ONCE (outside function)
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+
 const client = SibApiV3Sdk.ApiClient.instance;
 const apiKey = client.authentications["api-key"];
 apiKey.apiKey = process.env.BREVO_API_KEY;
 
 const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
-export const sendEmail = async (to, subject, htmlContent) => {
+const sendEmail = async (to, subject, htmlContent) => {
     try {
-        // ✅ Validate ENV
-        if (!process.env.BREVO_API_KEY || !process.env.EMAIL_USER) {
-            throw new Error("Missing BREVO_API_KEY or EMAIL_USER");
-        }
-
-        // ✅ Validate input
-        if (!to) {
-            throw new Error("Recipient email is required");
-        }
-
         const response = await emailApi.sendTransacEmail({
             sender: {
                 email: process.env.EMAIL_USER,
-                name: "KULT Support" // 🔥 improves deliverability
+                name: "KULT Support"
             },
             to: [{ email: to }],
             subject,
@@ -52,13 +44,12 @@ export const sendEmail = async (to, subject, htmlContent) => {
         return true;
 
     } catch (err) {
-        // 🔥 FULL DEBUG (VERY IMPORTANT)
-        console.error("❌ BREVO FULL ERROR:");
-        console.error(err.response?.body || err);
-
+        console.error("❌ BREVO ERROR:", err.response?.body || err);
         return false;
     }
 };
+
+module.exports = sendEmail;
 
 // --- 1. MIDDLEWARE & CORS ---
 app.use(cors());
