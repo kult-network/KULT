@@ -8,8 +8,12 @@ const app = express();
 // 1. CORS Configuration
 // This allows your Vercel frontend to talk to this Railway backend
 app.use(cors({
-    origin: ['https://kult-nine.vercel.app', 'http://localhost:5001'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: [
+        "https://www.kultnetwork.in",
+        "https://kultnetwork.in",
+        "http://localhost:5173"
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true
 }));
 
