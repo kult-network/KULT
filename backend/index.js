@@ -17,7 +17,7 @@ app.use(express.json());
 
 // Sample Route
 app.get('/', (req, res) => {
-    res.send('Raveo Backend is running on Railway!');
+    res.send('KULT Backend is running on Railway!');
 });
 
 // 2. Dynamic Port Handling
