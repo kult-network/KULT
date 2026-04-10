@@ -154,10 +154,10 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#050505] p-6">
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-pink-600/20 blur-[120px] rounded-full" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-x-hidden bg-[#050505] p-4 sm:p-6 md:p-8">
+      {/* Background Orbs - Hidden or scaled on small screens for better performance and less clutter */}
+      <div className="absolute top-[-10%] left-[-10%] w-[60%] sm:w-[40%] h-[40%] bg-purple-600/10 sm:bg-purple-600/20 blur-[80px] sm:blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] sm:w-[40%] h-[40%] bg-pink-600/10 sm:bg-pink-600/20 blur-[80px] sm:blur-[120px] rounded-full pointer-events-none" />
 
       <Toast
         isVisible={toast.show}
@@ -170,26 +170,26 @@ const Auth = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md relative z-10 flex flex-col items-center"
       >
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 p-8 md:p-10 rounded-[2.5rem] shadow-2xl overflow-hidden relative group">
+        <div className="w-full backdrop-blur-xl bg-white/5 border border-white/10 p-6 xs:p-8 md:p-10 rounded-[2rem] xs:rounded-[2.5rem] shadow-2xl overflow-hidden relative group">
           {/* Subtle shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-          <div className="relative">
-            <header className="text-center mb-10">
+          <div className="relative w-full">
+            <header className="text-center mb-8 md:mb-10">
               <motion.div
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, type: "spring" }}
-                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-6 shadow-lg shadow-purple-500/20"
+                className="inline-flex items-center justify-center w-12 h-12 xs:w-16 xs:h-16 rounded-xl xs:rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4 xs:mb-6 shadow-lg shadow-purple-500/20"
               >
-                <Zap className="text-white w-8 h-8 fill-white" />
+                <Zap className="text-white w-6 h-6 xs:w-8 xs:h-8 fill-white" />
               </motion.div>
-              <h1 className="text-4xl font-bold tracking-tight text-white mb-2 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              <h1 className="text-3xl xs:text-4xl font-bold tracking-tight text-white mb-2 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                 {authMode === 'login' ? 'Welcome Back' : 'Create Account'}
               </h1>
-              <p className="text-white/40 font-medium">
+              <p className="text-white/40 font-medium text-sm xs:text-base px-2">
                 {otpSent 
                   ? `Verify your email to ${authMode === 'login' ? 'access' : 'create'} your ID`
                   : authMode === 'login' 
@@ -205,10 +205,10 @@ const Auth = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  className="space-y-4 w-full"
                 >
                   {authMode === 'signup' && (
-                    <div className="relative group">
+                    <div className="relative group w-full">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <User className="h-5 w-5 text-white/20 group-focus-within:text-purple-400 transition-colors" />
                       </div>
@@ -217,12 +217,12 @@ const Auth = () => {
                         placeholder="Your Name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all"
+                        className="w-full pl-12 pr-4 py-3 xs:py-4 bg-white/5 border border-white/10 rounded-xl xs:rounded-2xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all text-sm xs:text-base"
                       />
                     </div>
                   )}
 
-                  <div className="relative group">
+                  <div className="relative group w-full">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Mail className="h-5 w-5 text-white/20 group-focus-within:text-purple-400 transition-colors" />
                     </div>
@@ -231,31 +231,31 @@ const Auth = () => {
                       placeholder="Email Address"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all"
+                      className="w-full pl-12 pr-4 py-3 xs:py-4 bg-white/5 border border-white/10 rounded-xl xs:rounded-2xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all text-sm xs:text-base"
                     />
                   </div>
 
                   <button
                     onClick={handleSendOtp}
                     disabled={loading}
-                    className="w-full relative group overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 p-4 rounded-2xl font-bold text-white shadow-lg shadow-purple-600/20 hover:shadow-purple-600/40 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
+                    className="w-full relative group overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 p-3 xs:p-4 rounded-xl xs:rounded-2xl font-bold text-white shadow-lg shadow-purple-600/20 hover:shadow-purple-600/40 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 mt-2"
                   >
                     <div className="relative z-10 flex items-center justify-center gap-2">
                       {loading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                         <>
-                          <span>{authMode === 'login' ? 'Sign In' : 'Get Started'}</span>
-                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          <span className="text-sm xs:text-base">{authMode === 'login' ? 'Sign In' : 'Get Started'}</span>
+                          <ArrowRight className="w-4 h-4 xs:w-5 xs:h-5 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
                     </div>
                   </button>
 
-                  <div className="pt-6 text-center">
+                  <div className="pt-4 xs:pt-6 text-center">
                     <button
                       onClick={() => switchMode(authMode === 'login' ? 'signup' : 'login')}
-                      className="text-white/40 hover:text-white text-sm font-medium transition-colors inline-flex items-center gap-2"
+                      className="text-white/40 hover:text-white text-xs xs:text-sm font-medium transition-colors inline-flex items-center gap-2"
                     >
                       {authMode === 'login' ? (
                         <>New here? <span className="text-purple-400">Create an account</span></>
@@ -271,53 +271,53 @@ const Auth = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
+                  className="space-y-6 w-full"
                 >
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="flex gap-3 justify-center">
+                  <div className="flex flex-col items-center gap-4 w-full">
+                    <div className="flex gap-3 justify-center w-full">
                       <input
                         type="text"
                         maxLength="6"
                         placeholder="••••••"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                        className="w-full max-w-[200px] py-4 bg-white/5 border border-white/10 rounded-2xl text-white text-center text-3xl font-bold tracking-[0.5em] placeholder:text-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all"
+                        className="w-full max-w-[180px] xs:max-w-[200px] py-3 xs:py-4 bg-white/5 border border-white/10 rounded-xl xs:rounded-2xl text-white text-center text-2xl xs:text-3xl font-bold tracking-[0.3em] xs:tracking-[0.5em] placeholder:text-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all"
                       />
                     </div>
-                    <p className="text-white/40 text-sm">
-                      Enter the 6-digit code sent to <span className="text-white/80">{email}</span>
+                    <p className="text-white/40 text-xs xs:text-sm text-center px-4">
+                      Enter the 6-digit code sent to <span className="text-white/80 break-all">{email}</span>
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 w-full">
                     <button
                       onClick={handleVerifyOtp}
                       disabled={loading}
-                      className="w-full bg-white text-black p-4 rounded-2xl font-bold hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+                      className="w-full bg-white text-black p-3 xs:p-4 rounded-xl xs:rounded-2xl font-bold hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
                     >
                       {loading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                         <>
-                          <span>Verify Identity</span>
-                          <CheckCircle2 className="w-5 h-5" />
+                          <span className="text-sm xs:text-base">Verify Identity</span>
+                          <CheckCircle2 className="w-4 h-4 xs:w-5 xs:h-5" />
                         </>
                       )}
                     </button>
 
-                    <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center justify-between px-1 xs:px-2">
                       <button
                         onClick={() => setOtpSent(false)}
-                        className="text-white/40 hover:text-white text-sm font-medium transition-colors flex items-center gap-1"
+                        className="text-white/40 hover:text-white text-[10px] xs:text-sm font-medium transition-colors flex items-center gap-1"
                       >
-                        <ArrowLeft className="w-4 h-4" />
+                        <ArrowLeft className="w-3 h-3 xs:w-4 xs:h-4" />
                         Change Email
                       </button>
 
                       <button
                         onClick={resendOtp}
                         disabled={countdown > 0}
-                        className="text-white/40 hover:text-white disabled:hover:text-white/40 text-sm font-medium transition-colors"
+                        className="text-white/40 hover:text-white disabled:hover:text-white/40 text-[10px] xs:text-sm font-medium transition-colors"
                       >
                         {countdown > 0
                           ? `Resend in ${countdown}s`
@@ -332,7 +332,7 @@ const Auth = () => {
         </div>
 
         {/* Footer info */}
-        <p className="text-center mt-8 text-white/20 text-xs font-medium uppercase tracking-widest">
+        <p className="text-center mt-6 md:mt-8 text-white/20 text-[10px] xs:text-xs font-medium uppercase tracking-widest px-4">
           Secure Access • KULT Network © 2026
         </p>
       </motion.div>

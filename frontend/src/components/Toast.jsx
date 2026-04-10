@@ -12,10 +12,10 @@ const Toast = ({ message, type = 'success', isVisible, onClose }) => {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: -20, x: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+          initial={{ opacity: 0, y: -20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-          className="fixed top-24 right-8 z-[999] flex items-center gap-4 p-5 rounded-[24px] bg-black text-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/10 min-w-[300px]"
+          className="fixed top-6 sm:top-24 right-4 sm:right-8 left-4 sm:left-auto z-[999] flex items-center gap-4 p-4 sm:p-5 rounded-[20px] sm:rounded-[24px] bg-black text-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/10 min-w-0 sm:min-w-[300px]"
         >
           <div className={`p-2 rounded-xl ${type === 'success' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
             {type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}

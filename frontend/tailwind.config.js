@@ -3,6 +3,9 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      screens: {
+        'xs': '400px',
+      },
       fontFamily: {
         sporty: ['Syne', 'sans-serif'], // For KULT Logo & Main Headers
         sharp: ['Syne', 'sans-serif'],   // For Body & Card Info
