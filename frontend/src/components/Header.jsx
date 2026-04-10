@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, LogOut, ShieldCheck, User as UserIcon, Crown, Star, Menu, Bell } from 'lucide-react'; 
+import { Zap, LogOut, ShieldCheck, User as UserIcon, Crown, Star, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -29,6 +29,7 @@ const Header = ({ user, userData, role, onMenuClick, sidebarOpen, notifications 
   const userRole = (role || 'USER').toUpperCase();
   const roleInfo = ROLE_ASSETS[userRole] || ROLE_ASSETS.USER;
   const isSupervisor = userRole === 'SUPERVISOR';
+  const isOrganizer = userRole === 'ORGANIZER';
 
   // Calculate unread notifications
   const unreadCount = React.useMemo(() => {
@@ -111,6 +112,20 @@ const Header = ({ user, userData, role, onMenuClick, sidebarOpen, notifications 
                   title="Control Gateway"
                 >
                   <ShieldCheck size={18} strokeWidth={2.5} />
+                </motion.button>
+              </Link>
+            )}
+
+            {/* Organizer Hub - Only on desktop */}
+            {isOrganizer && (
+              <Link to="/organizer" className="hidden lg:block shrink-0">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-10 h-10 bg-violet-600 text-white rounded-xl flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl active:scale-95"
+                  title="Organizer Hub"
+                >
+                  <Crown size={18} strokeWidth={2.5} />
                 </motion.button>
               </Link>
             )}

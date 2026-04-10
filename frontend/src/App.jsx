@@ -227,6 +227,16 @@ function App() {
                   <CreateEvent />
                 </RoleProtectedRoute>
               } />
+              <Route path="/organizer" element={
+                <RoleProtectedRoute user={user} role={role} allowedRoles={['ORGANIZER', 'SUPERVISOR']}>
+                  <OrganizerPanel user={user} />
+                </RoleProtectedRoute>
+              } />
+              <Route path="/organizer/event/:eventId" element={
+                <RoleProtectedRoute user={user} role={role} allowedRoles={['ORGANIZER', 'SUPERVISOR']}>
+                  <OrganizerDashboard />
+                </RoleProtectedRoute>
+              } />
               <Route path="/supervisor" element={
                 <RoleProtectedRoute user={user} role={role} allowedRoles={['SUPERVISOR']}>
                   <SupervisorPanel />

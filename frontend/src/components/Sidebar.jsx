@@ -213,9 +213,29 @@ const Sidebar = ({ isOpen, onClose, user, role, notifications = [] }) => {
                     <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                       <ShieldCheck size={12} className="text-purple-500 mb-2" />
                       <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Verification</p>
-                      <p className="text-sm text-white">{role === 'SUPERVISOR' ? 'Primary Admin' : 'Authorized Personnel'}</p>
+                      <p className="text-sm text-white">{role === 'SUPERVISOR' ? 'Primary Admin' : role === 'ORGANIZER' ? 'Mission Architect' : 'Authorized Personnel'}</p>
                     </div>
                   </div>
+
+                  {role === 'SUPERVISOR' && (
+                    <Link to="/supervisor" onClick={onClose} className="w-full mt-4 flex items-center justify-between p-4 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-2xl transition-all group">
+                      <div className="flex items-center gap-3">
+                        <Shield size={16} className="text-purple-400" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white">Supervisor Panel</span>
+                      </div>
+                      <ChevronRight size={14} className="text-purple-400 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  )}
+
+                  {(role === 'ORGANIZER' || role === 'SUPERVISOR') && (
+                    <Link to="/organizer" onClick={onClose} className="w-full mt-2 flex items-center justify-between p-4 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-2xl transition-all group">
+                      <div className="flex items-center gap-3">
+                        <Crown size={16} className="text-violet-400" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white">Organizer Hub</span>
+                      </div>
+                      <ChevronRight size={14} className="text-violet-400 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  )}
 
                   <button 
                     onClick={() => { localStorage.clear(); window.location.reload(); }}
