@@ -12,8 +12,9 @@ const app = express();
 // ✅ Create transporter ONCE
 const transporter = nodemailer.createTransport({
     host: "smtp.hostinger.com",
-    port: 587,              // ✅ Use 587 (NOT 465)
-    secure: false,          // ✅ false for 587
+    port: 587,
+    secure: false,
+    family: 4, // 🔥 CRITICAL Fix: Force IPv4 to stop ENETUNREACH
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
