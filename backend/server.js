@@ -25,54 +25,29 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Create transporter ONCE
-const transporter = nodemailer.createTransport({
-    host: "smtp.hostinger.com",
-    port: 587,
-    secure: false,
-    family: 4, // 🔥 CRITICAL Fix: Force IPv4 to stop ENETUNREACH
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
-    },
-    connectionTimeout: 20000
-});
+// ✅ Transporter removed: using Brevo HTTP API to bypass Render port blocks
 
-// ✅ Verify connection on startup (optional but useful)
-transporter.verify((error, success) => {
-    if (error) {
-        console.error("❌ SMTP Connection Failed:", error.message);
-    }
-});
-
-// ✅ Send Email Function
+// ✅ Send Email Function via Brevo REST API
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        // ✅ ENV validation
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            throw new Error("EMAIL_USER or EMAIL_PASS missing");
-        }
-
-        if (!to) {
-            throw new Error("Recipient email missing");
-        }
-
-        // ✅ Send mail
-        const info = await transporter.sendMail({
-            from: `"KULT Support" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            html: htmlContent
+        if (!process.env.BREVO_API_KEY) throw new Error("BREVO_API_KEY missing from environment variables");
+        
+        const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { name: "KULT Support", email: process.env.EMAIL_USER || "support@kultnetwork.in" },
+            to: [{ email: to }],
+            subject: subject,
+            htmlContent: htmlContent
+        }, {
+            headers: {
+                'accept': 'application/json',
+                'api-key': process.env.BREVO_API_KEY,
+                'content-type': 'application/json'
+            }
         });
-
         return true;
-
     } catch (err) {
-        console.error("❌ SMTP FULL ERROR:");
-        console.error(err.message || err);
+        console.error("❌ BREVO API ERROR:");
+        console.error(err.response?.data || err.message);
         return false;
     }
 };

@@ -70,7 +70,7 @@ const Kultist = () => {
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'HTTP-Referer': window.location.origin, 'X-Title': 'KULT Gateway' },
-          body: JSON.stringify({ model: "openai/gpt-oss-120b:free", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: query }] })
+          body: JSON.stringify({ model: "meta-llama/llama-3.1-8b-instruct:free", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: query }] })
         });
 
         if (!response.ok) throw new Error(`AI Request failed: ${response.status}`);
