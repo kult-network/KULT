@@ -35,6 +35,13 @@ function App() {
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [readNotifications, setReadNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('read_notifications');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  });
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -57,6 +64,7 @@ function App() {
   };
 
   useEffect(() => {
+    if (!user) return;
     const fetchAllNotifications = async () => {
       try {
         const NOCO_URL = "https://app.nocodb.com/api/v2/tables/mvxwc3h19a4a0jw/records";
@@ -74,75 +82,60 @@ function App() {
     fetchAllNotifications();
     const interval = setInterval(fetchAllNotifications, 300000); // Increased to 5 minutes to prevent background activity
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
+  // Global Swipe-to-Open/Close Sidebar Interceptor for Mobile Devices
   useEffect(() => {
-    const colorPalettes = [
-      { primary: '#111827', secondary: '#374151', accent: '#7c3aed', accentBg: 'rgba(124, 58, 237, 0.08)', accentBorder: 'rgba(124, 58, 237, 0.24)', shadow: 'rgba(124, 58, 237, 0.16)', border: '#ddd6fe' },
-      { primary: '#0f172a', secondary: '#475569', accent: '#06b6d4', accentBg: 'rgba(6, 182, 212, 0.1)', accentBorder: 'rgba(6, 182, 212, 0.24)', shadow: 'rgba(6, 182, 212, 0.18)', border: '#bae6fd' },
-      { primary: '#1f2937', secondary: '#4b5563', accent: '#ec4899', accentBg: 'rgba(236, 72, 153, 0.1)', accentBorder: 'rgba(236, 72, 153, 0.24)', shadow: 'rgba(236, 72, 153, 0.18)', border: '#fed7e2' },
-      { primary: '#111827', secondary: '#6b7280', accent: '#22c55e', accentBg: 'rgba(34, 197, 94, 0.1)', accentBorder: 'rgba(34, 197, 94, 0.24)', shadow: 'rgba(34, 197, 94, 0.16)', border: '#bbf7d0' },
-      { primary: '#0f172a', secondary: '#64748b', accent: '#f97316', accentBg: 'rgba(249, 115, 22, 0.1)', accentBorder: 'rgba(249, 115, 22, 0.24)', shadow: 'rgba(249, 115, 22, 0.18)', border: '#fed7aa' },
-      { primary: '#111827', secondary: '#536471', accent: '#38bdf8', accentBg: 'rgba(56, 189, 248, 0.12)', accentBorder: 'rgba(56, 189, 248, 0.24)', shadow: 'rgba(56, 189, 248, 0.16)', border: '#bae6fd' },
-      { primary: '#1f2937', secondary: '#475569', accent: '#f59e0b', accentBg: 'rgba(245, 158, 11, 0.1)', accentBorder: 'rgba(245, 158, 11, 0.24)', shadow: 'rgba(245, 158, 11, 0.18)', border: '#fde68a' },
-      { primary: '#111827', secondary: '#57606f', accent: '#8b5cf6', accentBg: 'rgba(139, 92, 246, 0.08)', accentBorder: 'rgba(139, 92, 246, 0.24)', shadow: 'rgba(139, 92, 246, 0.16)', border: '#ddd6fe' },
-      { primary: '#0f172a', secondary: '#475569', accent: '#f43f5e', accentBg: 'rgba(244, 63, 94, 0.1)', accentBorder: 'rgba(244, 63, 94, 0.24)', shadow: 'rgba(244, 63, 94, 0.18)', border: '#fecdd3' },
-      { primary: '#111827', secondary: '#4b5563', accent: '#0ea5e9', accentBg: 'rgba(14, 165, 233, 0.1)', accentBorder: 'rgba(14, 165, 233, 0.24)', shadow: 'rgba(14, 165, 233, 0.18)', border: '#bfdbfe' },
-      { primary: '#1f2937', secondary: '#64748b', accent: '#22c55e', accentBg: 'rgba(34, 197, 94, 0.08)', accentBorder: 'rgba(34, 197, 94, 0.24)', shadow: 'rgba(34, 197, 94, 0.18)', border: '#dcfce7' },
-      { primary: '#111827', secondary: '#475569', accent: '#f97316', accentBg: 'rgba(249, 115, 22, 0.08)', accentBorder: 'rgba(249, 115, 22, 0.24)', shadow: 'rgba(249, 115, 22, 0.18)', border: '#fed7aa' }
-    ];
+    let touchStartX = 0;
+
+    const handleTouchStart = e => {
+      touchStartX = e.changedTouches[0].screenX;
+    };
     
-    // Persist palette to avoid "flicker" on background refresh
-    let paletteIndex = localStorage.getItem('kult_palette_index');
-    if (paletteIndex === null) {
-      paletteIndex = Math.floor(Math.random() * colorPalettes.length);
-      localStorage.setItem('kult_palette_index', paletteIndex);
-    }
-    const palette = colorPalettes[parseInt(paletteIndex)];
-    
-    const root = document.documentElement.style;
-    root.setProperty('--text-primary', palette.primary);
-    root.setProperty('--text-secondary', palette.secondary);
-    root.setProperty('--accent-color', palette.accent);
-    root.setProperty('--accent', palette.accent);
-    root.setProperty('--accent-border', palette.accentBorder);
-    root.setProperty('--accent-bg', palette.accentBg);
-    root.setProperty('--shadow-color', palette.shadow);
-    root.setProperty('--card-bg', 'rgba(255, 255, 255, 0.82)');
-    root.setProperty('--border-color', palette.border);
-    root.setProperty('--border', palette.border);
-    root.setProperty('--text-h', palette.primary);
-    root.setProperty('--bg-soft', 'rgba(248, 250, 252, 1)');
+    const handleTouchEnd = e => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const swipeDistance = touchEndX - touchStartX;
+      
+      // Swipe Left Trigger (Open) - from rightmost 40px of screen
+      if (swipeDistance < -50 && touchStartX > window.innerWidth - 40) {
+        setSidebarOpen(true);
+      }
+      
+      // Swipe Right Trigger (Close)
+      if (swipeDistance > 50) {
+        setSidebarOpen(prev => prev ? false : prev);
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
   }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('kult_token');
-      const storedUser = localStorage.getItem('kult_user');
-      
-      if (token && storedUser) {
-        try {
-          // Immediately set user from local storage to prevent blank screen
-          const userData = JSON.parse(storedUser);
+      try {
+        const token = localStorage.getItem('kult_token');
+        const userDataString = localStorage.getItem('kult_user');
+        
+        if (token && userDataString) {
+          const userData = JSON.parse(userDataString);
           setUser(userData);
           setRole(userData.role || 'USER');
-
-          const res = await axios.get(`${API_BASE_URL}/api/auth/verify`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (res.data.valid) {
-            setRole(res.data.user.role || userData.role || 'USER');
-          } else {
-            localStorage.removeItem('kult_token');
-            localStorage.removeItem('kult_user');
-            setUser(null);
-            setRole(null);
-          }
-        } catch (err) {
-          // Silent fail on background check to avoid interruption
-          console.error("Auth verify error:", err);
+        } else {
+          setUser(null);
+          setRole(null);
         }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+        localStorage.removeItem('kult_token');
+        localStorage.removeItem('kult_user');
+        setUser(null);
+        setRole(null);
       }
     };
     
@@ -198,16 +191,25 @@ function App() {
             onMenuClick={(shouldOpen) => setSidebarOpen(shouldOpen === undefined ? !sidebarOpen : shouldOpen)}
             sidebarOpen={sidebarOpen}
             notifications={notifications}
+            readNotifications={readNotifications}
           />
-          <Kultist />
-          <Sidebar 
-            isOpen={sidebarOpen} 
-            onClose={() => setSidebarOpen(false)}
-            user={user}
-            role={role}
-            notifications={notifications}
-          />
-          <main className="flex-1 pt-4 md:pt-8">
+          
+          {user && (
+            <>
+              <Kultist />
+              <Sidebar 
+                isOpen={sidebarOpen} 
+                onClose={() => setSidebarOpen(false)}
+                user={user}
+                role={role}
+                notifications={notifications}
+                readNotifications={readNotifications}
+                setReadNotifications={setReadNotifications}
+              />
+            </>
+          )}
+
+          <main className="flex-1">
             <Routes>
               <Route path="/" element={<HubsList user={user} role={role} handleLogout={handleLogout} />} />
               <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />

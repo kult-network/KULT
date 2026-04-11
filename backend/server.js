@@ -9,6 +9,22 @@ if (!process.env.VERCEL) {
 
 const app = express();
 
+process.on('exit', (code) => {
+    console.log('Process exit event with code: ', code);
+});
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('SIGINT', () => {
+    console.log('SIGINT received');
+    process.exit(0);
+});
 // ✅ Create transporter ONCE
 const transporter = nodemailer.createTransport({
     host: "smtp.hostinger.com",
@@ -61,9 +77,7 @@ const sendEmail = async (to, subject, htmlContent) => {
     }
 };
 
-// ✅ export (important if used in other files)
-module.exports = sendEmail;
-
+// ✅ export (removed sendEmail export as it overrides express app)
 // --- 1. MIDDLEWARE & CORS ---
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -82,7 +96,7 @@ const generateSessionToken = () => {
 };
 
 // --- 2. CONFIGURATION ---
-const NOCO_BASE_URL = "https://app.nocodb.com/api/v1/db/data/noco/pdo67xcuojyjxq5";
+const NOCO_BASE_URL = process.env.NOCO_BASE_URL || "https://app.nocodb.com/api/v1/db/data/v1/pdo67xcuojyjxq5";
 const HEADERS = { 'xc-token': process.env.NOCO_TOKEN };
 
 // Table IDs
@@ -95,7 +109,21 @@ const TABLE_ID_TOKENS = "mc0b38mv8ao1a1o";
 const TABLE_ID_POLLS = "mc7vexszhan3k4r";
 const TABLE_ID_NOTIFICATIONS = "mvxwc3h19a4a0jw";
 
-// --- 3. HELPER FUNCTIONS ---
+// --- 3. HELPER FUNCTIONS & CACHING ---
+const cache = new Map();
+
+const fetchWithCache = async (url, config = {}, ttlSeconds = 15) => {
+    const key = url + JSON.stringify(config.params || {});
+    const cached = cache.get(key);
+    if (cached && cached.expiry > Date.now()) {
+        return cached.data;
+    }
+    
+    const response = await axios.get(url, config);
+    cache.set(key, { data: response.data, expiry: Date.now() + (ttlSeconds * 1000) });
+    return response.data;
+};
+
 const logActivity = async (message, type = "GENERAL") => {
     try {
         await axios.post(`${NOCO_BASE_URL}/${TABLE_ID_ACTIVITY}`, { Log: message, Type: type }, { headers: HEADERS });
@@ -295,8 +323,8 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.get('/api/hubs', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}`, { headers: HEADERS });
-        res.json(response.data.list || response.data || []);
+        const data = await fetchWithCache(`${NOCO_BASE_URL}/${TABLE_ID_HUBS}`, { headers: HEADERS }, 30);
+        res.json(data.list || data || []);
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch hubs", details: err.message });
     }
@@ -337,8 +365,8 @@ app.post('/api/events', async (req, res) => {
 
 app.get('/api/events/:id', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${req.params.id}`, { headers: HEADERS });
-        res.json(response.data);
+        const data = await fetchWithCache(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}/${req.params.id}`, { headers: HEADERS }, 10);
+        res.json(data);
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch mission details" });
     }
@@ -379,11 +407,11 @@ app.delete('/api/events/:id', async (req, res) => {
 
 app.get('/api/hubs/:id/events', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
+        const data = await fetchWithCache(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
             headers: HEADERS,
             params: { limit: 100, sort: '-Id' }
-        });
-        const allEvents = response.data.list || response.data || [];
+        }, 15);
+        const allEvents = data.list || data || [];
 
         if (req.params.id === '0' || req.params.id === 'all') {
             res.json(allEvents);
@@ -507,8 +535,8 @@ app.post('/api/polls', async (req, res) => {
 
 app.get('/api/polls/active', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_POLLS}`, { headers: HEADERS, params: { limit: 1, sort: '-Id' } });
-        res.json(response.data.list?.[0] || null);
+        const data = await fetchWithCache(`${NOCO_BASE_URL}/${TABLE_ID_POLLS}`, { headers: HEADERS, params: { limit: 1, sort: '-Id' } }, 10);
+        res.json(data.list?.[0] || null);
     } catch (err) { res.status(500).json(null); }
 });
 
@@ -561,14 +589,22 @@ app.get('/api/organizer-events/:email', async (req, res) => {
 
 app.get('/api/featured-event', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_PROGRAMS}`, {
-            headers: HEADERS,
-            params: { limit: 100, sort: '-Id' }
-        });
-        const events = response.data.list || response.data || [];
-        const featured = events.find(e => e.Featured === true || e.Featured === 'true');
-        res.json(featured || null);
-    } catch (err) { res.json(null); }
+        const _cacheKey = `${TABLE_ID_PROGRAMS}_featured_event_cache`;
+        
+        // Custom inline cache check for this specific endpoint's complex manual filtering
+        const now = Date.now();
+        if (apiCache[_cacheKey] && (now - apiCache[_cacheKey].timestamp) < 30000) {
+            return res.json(apiCache[_cacheKey].data);
+        }
+
+        const events = await fetchWithCache(TABLE_ID_PROGRAMS, { limit: 100, sort: '-Id' }, 30);
+        const featured = events.find(e => e.Featured === true || e.Featured === 'true') || null;
+        
+        apiCache[_cacheKey] = { timestamp: now, data: featured };
+        res.json(featured);
+    } catch (err) { 
+        res.json(null); 
+    }
 });
 
 app.post('/api/featured-event', async (req, res) => {
@@ -612,13 +648,23 @@ app.post('/api/notifications', async (req, res) => {
 
 app.get('/api/activity', async (req, res) => {
     try {
-        const response = await axios.get(`${NOCO_BASE_URL}/${TABLE_ID_ACTIVITY}`, { headers: HEADERS, params: { limit: 15, sort: '-Id' } });
-        res.json(response.data.list || response.data || []);
+        const data = await fetchWithCache(`${NOCO_BASE_URL}/${TABLE_ID_ACTIVITY}`, { headers: HEADERS, params: { limit: 15, sort: '-Id' } }, 5);
+        res.json(data.list || data || []);
     } catch (err) { res.status(500).json([]); }
 });
 
 app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
+const PORT = process.env.PORT || 5001;
+const http = require('http');
+const server = http.createServer(app);
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 KULT ENGINE MASTER IS LISTENING ON PORT ${PORT}`);
 });
+
+server.on('error', (err) => {
+    console.error("SERVER ERROR:", err);
+});
+
+module.exports = app;

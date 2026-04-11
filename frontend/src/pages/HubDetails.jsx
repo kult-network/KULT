@@ -4,75 +4,53 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, Ticket, User, Zap, Plus, X, ShieldCheck,
-  Clock, Mic2, BookOpen, Music, Layers, Info, Mail, Key, Image as ImageIcon, Calendar, ChevronRight, Loader2, CheckCircle2
+  ArrowLeft, Ticket, User, Zap, X, ShieldCheck, Clock, Layers, Info, Calendar, Loader2, CheckCircle2, Globe
 } from 'lucide-react';
-
-const RANDOM_TAGLINES = [
-  "NEURAL INTERFACE ACTIVE", "GATEWAY TO THE KULT", "CYBERNETIC ECOSYSTEM LIVE",
-  "DECENTRALIZE THE CAMPUS", "THE FUTURE IS ENCRYPTED", "SYNCING WITH DESTINY",
-  "BEYOND THE GRID", "REVOLUTION STARTING NOW", "PROTOCOLS INITIALIZED"
-];
-
-const KULT_COLORS = [
-  { bg: "bg-purple-600", text: "text-purple-600", light: "bg-purple-50", border: "border-purple-100", shadow: "shadow-purple-200" },
-  { bg: "bg-blue-600", text: "text-blue-600", light: "bg-blue-50", border: "border-blue-100", shadow: "shadow-blue-200" },
-  { bg: "bg-pink-600", text: "text-pink-600", light: "bg-pink-50", border: "border-pink-100", shadow: "shadow-pink-200" },
-  { bg: "bg-cyan-500", text: "text-cyan-500", light: "bg-cyan-50", border: "border-cyan-100", shadow: "shadow-cyan-200" },
-  { bg: "bg-yellow-500", text: "text-yellow-500", light: "bg-yellow-50", border: "border-yellow-100", shadow: "shadow-yellow-200" },
-  { bg: "bg-orange-500", text: "text-orange-500", light: "bg-orange-50", border: "border-orange-100", shadow: "shadow-orange-200" },
-];
+import { useSEO } from '../utils/seo';
+import { EmptyState } from '../components/EmptyState';
 
 const HubDetails = ({ user, role }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return Object.fromEntries(params.entries());
-  });
+  const [searchParams] = useState(() => Object.fromEntries(new URLSearchParams(window.location.search).entries()));
   const [events, setEvents] = useState([]);
   const [hubData, setHubData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [randomTag, setRandomTag] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showRegForm, setShowRegForm] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
   const [screenshot, setScreenshot] = useState(null);
   const [regData, setRegData] = useState({ Name: '', StudentID: '', Stream: '', Year: '' });
 
+  useSEO(hubData?.Name || 'Network Node', `Intelligence matrix for ${hubData?.Name || 'sector'}.`);
+
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      setRandomTag(RANDOM_TAGLINES[Math.floor(Math.random() * RANDOM_TAGLINES.length)]);
-      const pEvents = axios.get(`${API_BASE_URL}/api/hubs/${id}/events`);
-      const pHubs = axios.get(`${API_BASE_URL}/api/hubs`);
-      const [resEvents, resHubs] = await Promise.allSettled([pEvents, pHubs]);
-      
-      if (resEvents.status === 'fulfilled') {
-        const data = resEvents.value.data;
-        setEvents(Array.isArray(data) ? data : data.list || []);
+      try {
+        const [resEvents, resHubs] = await Promise.allSettled([
+          axios.get(`${API_BASE_URL}/api/hubs/${id}/events`),
+          axios.get(`${API_BASE_URL}/api/hubs`)
+        ]);
+        
+        if (resEvents.status === 'fulfilled') setEvents(Array.isArray(resEvents.value.data) ? resEvents.value.data : resEvents.value.data.list || []);
+        if (resHubs.status === 'fulfilled') {
+          const foundHub = (Array.isArray(resHubs.value.data) ? resHubs.value.data : resHubs.value.data.list || []).find(h => String(h.id || h.Id) === String(id));
+          if (foundHub) setHubData(foundHub);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
-      if (resHubs.status === 'fulfilled') {
-        const data = resHubs.value.data;
-        const foundHub = (Array.isArray(data) ? data : data.list || []).find(h => String(h.id || h.Id) === String(id));
-        if (foundHub) setHubData(foundHub);
-      }
-      setLoading(false);
     };
     fetchData();
   }, [id]);
 
-  // Auto-open event from URL query param
   useEffect(() => {
-    const eventIdFromUrl = searchParams.event;
-    if (eventIdFromUrl && events.length > 0) {
-      const event = events.find(e => String(e.Id || e.id) === String(eventIdFromUrl));
-      if (event) {
-        setSelectedEvent(event);
-        // Clear URL params
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+    if (searchParams.event && events.length > 0) {
+      const event = events.find(e => String(e.Id || e.id) === String(searchParams.event));
+      if (event) { setSelectedEvent(event); window.history.replaceState({}, document.title, window.location.pathname); }
     }
   }, [events, searchParams]);
 
@@ -80,30 +58,18 @@ const HubDetails = ({ user, role }) => {
     e.preventDefault();
     setSubmitting(true);
     const payload = {
-      ...regData,
-      Event_ID: selectedEvent.id || selectedEvent.Id,
-      Email: user?.email,
-      Status: 'Pending',
+      ...regData, Event_ID: selectedEvent.id || selectedEvent.Id, Email: user?.email, Status: 'Pending',
       Payment_Screenshot: screenshot ? [{ path: screenshot, fileName: `ss_${Date.now()}.png` }] : []
     };
     try {
       await axios.post(`${API_BASE_URL}/api/bookings`, payload);
       setRegSuccess(true);
-      
-      if (selectedEvent.Redirect_Link) {
-         setTimeout(() => {
-             window.open(selectedEvent.Redirect_Link, '_blank');
-         }, 1000);
-      }
-
+      if (selectedEvent.Redirect_Link) setTimeout(() => window.open(selectedEvent.Redirect_Link, '_blank'), 1000);
       setTimeout(() => {
-        setSelectedEvent(null);
-        setShowRegForm(false);
-        setRegSuccess(false);
+        setSelectedEvent(null); setShowRegForm(false); setRegSuccess(false); setScreenshot(null);
         setRegData({ Name: '', StudentID: '', Stream: '', Year: '' });
-        setScreenshot(null);
       }, 3000);
-    } catch { alert("Registration failed. Network congestion."); } 
+    } catch { alert("Registration failed."); } 
     finally { setSubmitting(false); }
   };
 
@@ -119,208 +85,154 @@ const HubDetails = ({ user, role }) => {
   const renderItinerary = (data) => {
     try {
       return JSON.parse(data).map((slot, i) => (
-        <div key={i} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
-          <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">{slot.time}</span>
-          <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tighter">{slot.activity}</span>
+        <div key={i} className="flex justify-between items-center py-3 border-b border-[#222] last:border-0">
+          <span className="text-xs font-semibold text-[#888]">{slot.time}</span>
+          <span className="text-sm font-medium text-white">{slot.activity}</span>
         </div>
       ));
     } catch { return null; }
   };
 
-  // Helper to resolve poster URL correctly
- // --- Updated Helper in HubDetails.jsx ---
-const getPosterUrl = (event) => {
-  // Check 'Poster' (Capital P) as the primary source
-  const rawPoster = event.Poster || event.poster;
-  
-  if (typeof rawPoster === 'string' && rawPoster.startsWith('http')) {
-    return rawPoster;
-  }
-  
-  // Keep the array check just in case
-  if (Array.isArray(rawPoster) && rawPoster[0]) {
-    return rawPoster[0].url || `https://app.nocodb.com${rawPoster[0].path}`;
-  }
-  return null;
-};
+  const getPosterUrl = (event) => {
+    const rawPoster = event.Poster || event.poster;
+    if (typeof rawPoster === 'string' && rawPoster.startsWith('http')) return rawPoster;
+    if (Array.isArray(rawPoster) && rawPoster[0]) return rawPoster[0].url || `https://app.nocodb.com${rawPoster[0].path}`;
+    return null;
+  };
+
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#000] text-white font-medium text-sm">Processing Network Node...</div>;
+
   return (
-    <div className="min-h-screen bg-[var(--body-bg)] relative font-sharp selection:bg-purple-600 selection:text-white pb-20 text-[var(--text-primary)]">
+    <div className="min-h-screen bg-[#000000] text-[#EDEDED] font-sans pb-32">
+      <div className="w-full bg-[#111111] border-b border-[#222] py-2 px-6 flex justify-between items-center text-[10px] font-semibold text-[#888] uppercase tracking-wide">
+        <span>Node: {hubData?.Location || "Unknown Sector"}</span>
+        <span className="text-green-500">Connected</span>
+      </div>
+
+      <div className="max-w-[1200px] mx-auto px-6 sm:px-8 pt-12">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-[#A1A1AA] hover:text-white transition-colors mb-8">
+          <ArrowLeft size={16} /> Directory
+        </Link>
+        <header className="mb-12 border-b border-[#222] pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">{hubData?.Name || 'Unnamed Sector'}</h1>
+            <p className="text-[#A1A1AA] text-lg font-light">{hubData?.Tagline || 'A node in the network.'}</p>
+          </div>
+          <div className="flex items-center gap-2 text-[#888] text-sm bg-[#111] px-4 py-2 rounded-lg border border-[#222]">
+            <Globe size={16} /> Operational
+          </div>
+        </header>
+        
+        <h2 className="text-xl font-bold text-white mb-6">Active Deployments</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {events.length > 0 ? events.map((event, i) => (
+             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={event.Id || event.id}
+               className="bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden hover:border-[#444] transition-all flex flex-col group"
+             >
+               {getPosterUrl(event) ? (
+                 <div className="w-full h-48 bg-[#111] relative overflow-hidden">
+                   <img src={getPosterUrl(event)} alt={event.Title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] to-transparent" />
+                 </div>
+               ) : (
+                 <div className="w-full h-48 bg-[#111] border-b border-[#222] flex items-center justify-center">
+                   <Layers size={32} className="text-[#333]" />
+                 </div>
+               )}
+               <div className="p-6 flex-1 flex flex-col">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-[#111] border border-[#333] text-[#A1A1AA] rounded">{event.Category}</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded ${event.Price === 'PAID' ? 'bg-[#0070F3]/10 text-[#0070F3] border border-[#0070F3]/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
+                      {event.Price || 'FREE'}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2 line-clamp-1">{event.Title}</h3>
+                  <p className="text-[#888] text-sm line-clamp-2 font-light mb-6 flex-1">{event.Description}</p>
+                  <button onClick={() => setSelectedEvent(event)} className="w-full py-3 bg-[#EDEDED] text-black text-sm font-semibold rounded-lg hover:bg-white transition-colors">
+                    Access Details
+                  </button>
+               </div>
+             </motion.div>
+          )) : (
+            <div className="col-span-full"><EmptyState title="No Active Missions" message="This sector is currently quiet." icon={ShieldCheck} /></div>
+          )}
+        </div>
+      </div>
+
       <AnimatePresence>
         {selectedEvent && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-10 backdrop-blur-3xl bg-black/90">
-            <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} className="bg-[#0a0a0a] w-full max-w-6xl max-h-[90vh] rounded-[40px] md:rounded-[60px] border border-white/10 overflow-hidden relative shadow-2xl flex flex-col md:flex-row">
-              <button onClick={() => { setSelectedEvent(null); setShowRegForm(false); }} className="absolute top-8 right-8 z-50 p-4 bg-white/5 hover:bg-white text-white hover:text-black rounded-full transition-all active:scale-90"><X size={24} /></button>
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedEvent(null)} className="absolute inset-0 bg-[#000000]/80 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-[#0a0a0a] border border-[#333] w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
               
-              <div className="w-full md:w-1/2 h-48 md:h-auto relative hidden md:block">
-                {getPosterUrl(selectedEvent) ? (
-                  <img src={getPosterUrl(selectedEvent)} className="w-full h-full object-cover" alt="Poster" />
-                ) : (
-                  <div className="w-full h-full bg-neutral-900 flex items-center justify-center"><ImageIcon size={40} className="text-white/10" /></div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a]"></div>
+              <div className="p-4 border-b border-[#222] bg-[#111] flex justify-between items-center shrink-0">
+                <span className="text-xs font-semibold text-[#666] tracking-wide uppercase">Details Protocol</span>
+                <button onClick={() => { setSelectedEvent(null); setShowRegForm(false); }} className="p-2 text-[#666] hover:text-white transition-colors rounded-lg hover:bg-[#222]"><X size={16}/></button>
               </div>
 
-              <div className="w-full md:w-1/2 p-8 md:p-16 overflow-y-auto custom-scrollbar text-white">
-                {regSuccess ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                    <CheckCircle2 size={80} className="text-green-500 animate-bounce" />
-                    <h2 className="text-4xl font-black uppercase font-sporty">Mission Locked</h2>
-                    <p className="text-gray-400 text-xs tracking-widest uppercase">Identity registered. Awaiting manual validation.</p>
-                  </div>
-                ) : !showRegForm ? (
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 bg-[#0a0a0a]">
+                {!showRegForm ? (
                   <>
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-500 mb-4 block">Intelligence Brief</span>
-                    <h2 className="text-4xl md:text-5xl font-black font-sporty uppercase mb-6 italic tracking-tighter leading-none">{selectedEvent.Title}</h2>
-                    <div className="mb-10 relative group">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/20 to-transparent blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <p className="relative text-slate-100 text-sm font-bold border-l-4 border-purple-600 pl-6 uppercase tracking-tight leading-relaxed py-1 bg-gradient-to-r from-purple-600/5 to-transparent">
-                        {selectedEvent.Description || "Mission protocol details are classified."}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-6 mb-10">
-                      <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                        <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">COMMANDER</p>
-                        <p className="text-[10px] font-black uppercase tracking-tight">{selectedEvent.Speaker}</p>
+                    <div className="space-y-4">
+                      <h2 className="text-3xl font-bold tracking-tight text-white">{selectedEvent.Title}</h2>
+                      <div className="flex flex-wrap gap-3">
+                         <span className="text-xs font-medium bg-[#111] border border-[#333] text-[#A1A1AA] px-3 py-1.5 rounded-full flex items-center gap-2"><Calendar size={12}/>{selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString() : 'TBA'}</span>
+                         <span className="text-xs font-medium bg-[#111] border border-[#333] text-[#A1A1AA] px-3 py-1.5 rounded-full flex items-center gap-2"><Clock size={12}/>{selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'TBA'}</span>
                       </div>
-                      <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                        <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">ACCESS MODE</p>
-                        <p className="text-[10px] font-black uppercase tracking-tight text-purple-400">{selectedEvent.Price === 'PAID' ? 'PAID ENTRY' : 'FREE ACCESS'}</p>
-                      </div>
+                      <p className="text-[#A1A1AA] text-sm leading-relaxed font-light">{selectedEvent.Description}</p>
                     </div>
-                    {selectedEvent.Itinerary && <div className="mb-10 p-6 bg-white/[0.02] rounded-3xl border border-white/5">
-                      <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4">Mission Timeline</p>
-                      {renderItinerary(selectedEvent.Itinerary)}
-                    </div>}
-                    <button onClick={() => setShowRegForm(true)} className="w-full py-6 bg-slate-900/95 text-white font-black font-sporty uppercase rounded-3xl hover:bg-purple-600 hover:text-white transition-all active:scale-95 shadow-xl">INITIALIZE ACCESS PROTOCOL</button>
-                  </>
-                ) : (
-                  <form onSubmit={handleRegister} className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                    <div className="mb-8">
-                       <h2 className="text-3xl font-black uppercase font-sporty italic text-purple-500">Identity Sync</h2>
-                       <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest mt-2">Connecting to {selectedEvent.Title}</p>
-                    </div>
-                    <input placeholder="FULL NAME" className="w-full p-5 bg-white/5 rounded-2xl border border-white/10 text-xs font-black uppercase outline-none focus:border-purple-600" required onChange={e => setRegData({...regData, Name: e.target.value})} />
-                    <div className="grid grid-cols-2 gap-4">
-                      <input placeholder="STUDENT ID" className="p-5 bg-white/5 rounded-2xl border border-white/10 text-xs font-black uppercase outline-none focus:border-purple-600" required onChange={e => setRegData({...regData, StudentID: e.target.value})} />
-                      <input placeholder="YEAR (e.g. 2nd)" className="p-5 bg-white/5 rounded-2xl border border-white/10 text-xs font-black uppercase outline-none focus:border-purple-600" required onChange={e => setRegData({...regData, Year: e.target.value})} />
-                    </div>
-                    <input placeholder="STREAM / BRANCH" className="w-full p-5 bg-white/5 rounded-2xl border border-white/10 text-xs font-black uppercase outline-none focus:border-purple-600" required onChange={e => setRegData({...regData, Stream: e.target.value})} />
-                    {selectedEvent.Price === 'PAID' && (
-                      <div className="p-6 bg-purple-600/10 border border-purple-500/30 rounded-3xl space-y-4">
-                        <div className="text-center">
-                          <p className="text-[8px] font-black uppercase text-gray-500 tracking-widest mb-1">Payment Required</p>
-                          <p className="text-[11px] font-black uppercase text-purple-400 tracking-widest">UPI ID: {selectedEvent.UPI_ID || 'CONTACT ADMIN'}</p>
-                        </div>
-                        <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:bg-white/5 transition-all">
-                          {screenshot ? (
-                            <span className="text-[10px] font-black text-green-500 uppercase flex items-center gap-2"><CheckCircle2 size={16}/> SCREENSHOT ATTACHED</span>
-                          ) : (
-                            <><ImageIcon size={24} className="mb-2 text-gray-600" /><span className="text-[9px] font-black text-gray-500 uppercase">UPLOAD PAYMENT SCREENSHOT</span></>
-                          )}
-                          <input type="file" accept="image/*" className="hidden" onChange={handleScreenshot} required />
-                        </label>
+                    {selectedEvent.Itinerary && selectedEvent.Itinerary !== "null" && (
+                      <div className="bg-[#111] border border-[#222] rounded-xl p-5">
+                         <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2"><Layers size={14}/> Operational Itinerary</h3>
+                         <div>{renderItinerary(selectedEvent.Itinerary)}</div>
                       </div>
                     )}
-                    <button disabled={submitting} type="submit" className="w-full py-6 bg-purple-600 text-white font-black font-sporty uppercase rounded-3xl flex items-center justify-center gap-2 hover:bg-white hover:text-black transition-all active:scale-95 shadow-xl shadow-purple-600/20">
-                      {submitting ? <Loader2 className="animate-spin" /> : 'COMPLETE REGISTRATION'}
+                    <button onClick={() => user ? setShowRegForm(true) : navigate('/auth')} className="w-full py-4 bg-[#0070F3] hover:bg-[#0051B3] text-white text-sm font-semibold rounded-xl transition-all shadow-lg active:scale-95">
+                       {user ? "Initialize Participation" : "Authenticate to Participate"}
                     </button>
+                  </>
+                ) : !regSuccess ? (
+                  <form onSubmit={handleRegister} className="space-y-6">
+                    <div className="space-y-2">
+                       <h3 className="text-xl font-bold text-white mb-1">Registration Protocol</h3>
+                       <p className="text-[#888] text-sm">Validating credentials for {selectedEvent.Title}.</p>
+                    </div>
+                    <div className="space-y-4">
+                      <input className="w-full bg-[#111] border border-[#333] p-4 flex items-center rounded-lg outline-none focus:border-[#666] transition-colors text-sm text-white placeholder-gray-500 font-medium" placeholder="Full Legal Name" value={regData.Name} onChange={e => setRegData({...regData, Name: e.target.value})} required />
+                      <input className="w-full bg-[#111] border border-[#333] p-4 flex items-center rounded-lg outline-none focus:border-[#666] transition-colors text-sm text-white placeholder-gray-500 font-medium" placeholder="Registration ID / Code" value={regData.StudentID} onChange={e => setRegData({...regData, StudentID: e.target.value})} required />
+                      <div className="grid grid-cols-2 gap-4">
+                        <select className="w-full bg-[#111] border border-[#333] p-4 flex items-center rounded-lg outline-none focus:border-[#666] transition-colors text-sm text-white font-medium" value={regData.Stream} onChange={e => setRegData({...regData, Stream: e.target.value})} required>
+                           <option value="">Stream Selection</option><option value="B.Tech">B.Tech</option><option value="M.Tech">M.Tech</option><option value="BCA">BCA</option><option value="MCA">MCA</option><option value="Other">Other</option>
+                        </select>
+                        <select className="w-full bg-[#111] border border-[#333] p-4 flex items-center rounded-lg outline-none focus:border-[#666] transition-colors text-sm text-white font-medium" value={regData.Year} onChange={e => setRegData({...regData, Year: e.target.value})} required>
+                           <option value="">Year Selection</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option><option value="4">4th Year</option><option value="Alumni">Alumni</option>
+                        </select>
+                      </div>
+                      {selectedEvent.Price === "PAID" && (
+                         <div className="bg-[#111] border border-blue-500/30 p-5 rounded-xl space-y-4">
+                            <p className="text-sm font-semibold text-white">Proof of Transaction Required</p>
+                            <input type="file" accept="image/*" onChange={handleScreenshot} className="w-full text-sm text-[#888] file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#222] file:text-white hover:file:bg-[#333]" required />
+                         </div>
+                      )}
+                    </div>
+                    <button type="submit" disabled={submitting} className="w-full py-4 bg-[#EDEDED] text-black font-semibold text-sm rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50">
+                       {submitting ? <Loader2 className="animate-spin inline mr-2" size={16}/> : null} {submitting ? "Processing..." : "Submit Intelligence"}
+                    </button>
+                    <button type="button" onClick={() => setShowRegForm(false)} className="w-full py-1 text-[#666] hover:text-white text-xs font-semibold transition-colors mt-2 text-center">Cancel</button>
                   </form>
+                ) : (
+                  <div className="text-center py-12">
+                    <CheckCircle2 size={64} className="text-green-500 mx-auto mb-6" />
+                    <h3 className="text-2xl font-bold text-white mb-2">Registration Validated</h3>
+                    <p className="text-[#888] text-sm">Your clearance has been recorded in the central database.</p>
+                  </div>
                 )}
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 relative z-10">
-        <div className="flex justify-between items-center mb-16 px-2">
-          <Link to="/" className="flex items-center gap-3 font-black text-[10px] tracking-[0.4em] text-purple-400 hover:text-purple-300 transition-all uppercase"><ArrowLeft size={16} /> Exit Command</Link>
-          {(role?.toUpperCase() === 'ORGANIZER' || role?.toUpperCase() === 'SUPERVISOR') && (
-            <Link to={`/create-event?hubId=${id}`} className="flex items-center gap-2 px-8 py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-600 shadow-xl transition-all active:scale-95"><Plus size={16} strokeWidth={3} /> Host Mission</Link>
-          )}
-        </div>
-
-        <header className="mb-24 px-2">
-          <div className="flex flex-col gap-4">
-            <h1 className="text-[2.8rem] sm:text-[3.5rem] md:text-[6.5rem] font-black font-sporty tracking-tight uppercase leading-[0.95] mb-2 text-gradient max-w-5xl">
-              {hubData?.Name || "CAMPUS"} <span className="text-gradient italic">Hub</span>
-            </h1>
-            {loading ? (
-              <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] font-black tracking-[0.5em] uppercase text-gray-400 border-l-4 border-black pl-6">
-                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" /> SYNCING HUB DATA...
-              </span>
-            ) : (
-              <p className="text-[10px] sm:text-[11px] font-black tracking-[0.5em] text-purple-600 uppercase border-l-4 border-black pl-6">{randomTag}</p>
-            )}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-2">
-          {loading ? (
-            <div className="col-span-full rounded-[40px] md:rounded-[60px] border border-white/10 bg-slate-950/80 shadow-2xl p-16 text-center text-white/80">
-              <div className="mb-4 inline-flex items-center justify-center gap-3 text-lg font-black uppercase tracking-[0.2em]">
-                <span className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" /> LOADING HUB NODES...
-              </div>
-              <p className="text-sm text-gray-400">The mission grid is powering up.</p>
-            </div>
-          ) : events.length > 0 ? events.map((event, index) => {
-            const color = KULT_COLORS[index % KULT_COLORS.length];
-            const posterUrl = getPosterUrl(event);
-            
-            return (
-              <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className={`bg-slate-950/95 rounded-[40px] md:rounded-[60px] border-2 border-white/10 shadow-2xl overflow-hidden hover:${color.shadow} transition-all group flex flex-col h-auto md:h-[650px] relative`}>
-                {(role?.toUpperCase() === 'ORGANIZER' || role?.toUpperCase() === 'SUPERVISOR') && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); navigate(`/organizer-dashboard/${event.id || event.Id}`); }}
-                    className="absolute top-6 right-20 z-50 p-3 bg-slate-950/95 backdrop-blur-md rounded-xl text-white hover:bg-black hover:text-white transition-all shadow-lg border border-white/10"
-                    title="Mission Dashboard"
-                  >
-                    <ShieldCheck size={18} />
-                  </button>
-                )}
-                
-                <div className="h-52 md:h-64 relative bg-slate-900 overflow-hidden">
-                  {posterUrl ? (
-                    <img src={posterUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Poster" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-700"><ImageIcon size={40} /></div>
-                  )}
-                  <span className={`absolute top-6 left-6 text-[8px] font-black uppercase ${color.bg} text-white px-4 py-2 rounded-full tracking-widest shadow-lg`}>{event.Category}</span>
-                </div>
-
-                <div className="p-6 md:p-10 flex-grow flex flex-col">
-                  <h3 className="text-3xl font-black font-sporty uppercase leading-none tracking-tighter mb-6 text-white group-hover:text-purple-400 transition-colors line-clamp-2">{event.Title}</h3>
-                  <div className={`border-l-4 ${color.border} pl-6 space-y-3 mb-10 bg-gradient-to-r from-white/5 to-transparent py-2`}>
-                    <p className="text-[11px] font-black uppercase text-slate-100 flex items-center gap-2 tracking-widest"><Ticket size={14} className={color.text}/> {event.Price === 'PAID' ? 'PAID MISSION' : 'FREE ACCESS'}</p>
-                    <p className="text-[11px] font-black uppercase text-slate-100 flex items-center gap-2 tracking-widest"><User size={14} className={color.text}/> {event.Speaker}</p>
-                  </div>
-                  <button onClick={() => setSelectedEvent(event)} className={`w-full py-6 mt-auto border-2 ${color.border} ${color.text} font-black font-sporty uppercase rounded-[30px] hover:${color.bg} hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95`}>
-                    View Mission <ChevronRight size={18} />
-                  </button>
-                </div>
-              </motion.div>
-            );
-          }) : (
-            <div className="col-span-full py-32 text-center opacity-20"><p className="font-sporty text-5xl uppercase tracking-[0.2em] text-purple-300">Zero Signals</p></div>
-          )}
-        </div>
-
-        {role?.toUpperCase() === 'USER' && (
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mt-32 p-16 md:p-24 bg-black rounded-[70px] text-white shadow-2xl relative overflow-hidden group">
-            <div className="relative z-10 lg:flex items-center justify-between gap-10 text-center lg:text-left">
-              <div>
-                <h2 className="text-6xl md:text-8xl font-black font-sporty uppercase italic mb-8 leading-[0.8]">Elevate <span className="text-purple-500">Access</span></h2>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-[0.3em] max-w-xl">Request administrative clearance to host missions in this hub node.</p>
-              </div>
-              <div className="mt-10 lg:mt-0 flex flex-col sm:flex-row gap-6">
-                <a href={`mailto:support@kultnetwork.in?subject=KULT Node Access`} className="px-12 py-7 bg-slate-900/95 text-white rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3"><Mail size={20}/> Request Command</a>
-                <Link to="/verify-token" className="px-12 py-7 bg-white/5 border border-white/10 rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3"><Key size={20}/> Enter Token</Link>
-              </div>
-            </div>
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none transition-transform group-hover:scale-125"></div>
-          </motion.div>
-        )}
-      </main>
     </div>
   );
 };

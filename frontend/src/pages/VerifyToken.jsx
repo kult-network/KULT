@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import { ShieldCheck, Zap, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Toast from '../components/Toast'; 
 
 const VerifyToken = () => {
@@ -13,14 +13,12 @@ const VerifyToken = () => {
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
   const navigate = useNavigate();
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ show: true, msg, type });
-  };
+  const showToast = (msg, type = 'success') => setToast({ show: true, msg, type });
 
   const handleVerify = async (e) => {
     e.preventDefault();
     const cleanToken = token.trim().toUpperCase();
-    if (!cleanToken) return showToast("Bhai, token to daal!", "error");
+    if (!cleanToken) return showToast("Input token required", "error");
     
     setLoading(true);
     try {
@@ -28,79 +26,64 @@ const VerifyToken = () => {
       const userData = storedUser ? JSON.parse(storedUser) : null;
       
       const res = await axios.post(`${API_BASE_URL}/api/verify-organizer`, {
-        email: userData?.email,
-        name: userData?.name || userData?.email?.split('@')[0],
-        token: cleanToken 
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('kult_token')}` }
-      });
+        email: userData?.email, name: userData?.name || userData?.email?.split('@')[0], token: cleanToken 
+      }, { headers: { Authorization: `Bearer ${localStorage.getItem('kult_token')}` } });
       
       if (res.data.success) {
-        showToast("ACCESS GRANTED: ROLE UPGRADED! 👑", "success");
         setSuccess(true);
-        setTimeout(() => {
-          window.location.href = "/"; 
-        }, 3000);
+        setTimeout(() => window.location.href = "/", 3000);
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || "INVALID OR EXPIRED TOKEN!";
-      showToast(errMsg.toUpperCase(), "error");
-    } finally {
-      setLoading(false);
-    }
+      const errMsg = err.response?.data?.message || "Invalid or expired key";
+      showToast(errMsg, "error");
+    } finally { setLoading(false); }
   };
 
   if (success) {
     return (
-      <div className="h-screen bg-black flex flex-col items-center justify-center text-center p-6 overflow-hidden">
-        <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 260, damping: 20 }}>
-          <div className="relative">
-            <CheckCircle2 size={120} className="text-green-500 mb-8 relative z-10" />
-            <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute inset-0 bg-green-500 rounded-full blur-3xl opacity-20" />
-          </div>
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center text-center p-6 font-sans">
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-8 p-4 bg-green-500/10 rounded-full">
+          <CheckCircle2 size={64} className="text-green-500" />
         </motion.div>
-        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="text-5xl md:text-7xl font-black text-white uppercase italic mb-4 tracking-tighter">CLEARANCE <span className="text-green-500">GRANTED</span></motion.h1>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-gray-500 font-bold tracking-[0.5em] text-[10px] uppercase">Your role is now: <span className="text-white">ORGANIZER</span> | Redirecting...</motion.p>
+        <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Clearance Granted</h1>
+        <p className="text-[#A1A1AA] text-sm">Role upgraded to Organizer. Redirecting...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sharp">
+    <div className="min-h-screen bg-[#000000] text-[#EDEDED] flex items-center justify-center p-6 relative font-sans">
       <Toast isVisible={toast.show} message={toast.msg} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600 rounded-full blur-[150px] opacity-10 -mr-48 -mt-48"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600 rounded-full blur-[150px] opacity-10 -ml-48 -mb-48"></div>
-      <button onClick={() => navigate('/')} className="absolute top-10 left-6 md:left-10 flex items-center gap-2 text-gray-500 hover:text-white transition-all font-black text-[10px] tracking-[0.4em] uppercase">
-        <ArrowLeft size={16} /> EXIT GATEWAY
-      </button>
-      <main className="max-w-md w-full relative z-10">
-        <div className="text-center mb-16">
-          <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="inline-block p-5 bg-purple-600/10 border border-purple-500/20 rounded-[30px] mb-8 shadow-2xl">
-            <ShieldCheck size={48} className="text-purple-500" />
-          </motion.div>
-          <h1 className="text-6xl font-black uppercase italic tracking-tighter mb-6 leading-none">ACTIVATE <span className="text-purple-600">ID</span></h1>
-          <p className="text-gray-500 font-bold text-[10px] tracking-[0.3em] uppercase max-w-[250px] mx-auto leading-relaxed">INPUT YOUR UNIQUE ORGANIZER ACCESS KEY</p>
-        </div>
-        <form onSubmit={handleVerify} className="space-y-6">
-          <div className="relative group">
-            <input 
-              type="text" 
-              placeholder="KULT-XXXX-XXXX"
-              className="w-full bg-white/[0.03] border border-white/10 p-7 rounded-[30px] outline-none focus:border-purple-600 focus:bg-white/[0.07] transition-all font-mono text-2xl text-center tracking-[0.3em] uppercase"
-              value={token}
-              onChange={(e) => setToken(e.target.value.toUpperCase())} 
-              autoFocus
-            />
+      
+      <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 text-[#888] hover:text-white transition-colors text-sm font-medium">
+        <ArrowLeft size={16} /> Return to Network
+      </Link>
+
+      <div className="max-w-[400px] w-full bg-[#111] border border-[#222] rounded-2xl p-8 shadow-2xl relative z-10">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-[#0a0a0a] border border-[#333] rounded-2xl flex items-center justify-center mx-auto mb-6 text-white text-xl font-bold">
+            <ShieldCheck size={24} />
           </div>
-          <button type="submit" disabled={loading} className="w-full py-6 bg-purple-600 text-white font-black uppercase italic rounded-[30px] hover:bg-violet-500 transition-all shadow-2xl flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50">
-            {loading ? <Loader2 className="animate-spin" /> : <>ACTIVATE CLEARANCE <Zap size={20} fill="currentColor" /></>}
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">Verify Credential</h1>
+          <p className="text-[#888] text-sm leading-relaxed">Enter your unique organizational key to upgrade your network clearance.</p>
+        </div>
+
+        <form onSubmit={handleVerify} className="space-y-6">
+          <input 
+            type="text" placeholder="KULT-XXXX-XXXX"
+            className="w-full bg-[#0a0a0a] border border-[#333] px-4 py-4 rounded-xl outline-none focus:border-[#666] transition-colors font-mono text-center tracking-[0.2em] uppercase text-white"
+            value={token} onChange={(e) => setToken(e.target.value.toUpperCase())} autoFocus
+          />
+          <button type="submit" disabled={loading || !token} className="w-full py-4 bg-[#EDEDED] text-black font-semibold rounded-xl hover:bg-white transition-all shadow-lg flex items-center justify-center disabled:opacity-50 mt-4 active:scale-95">
+            {loading ? <Loader2 className="animate-spin" size={18} /> : "Validate Identity"}
           </button>
         </form>
-        <div className="mt-12 p-6 rounded-[25px] bg-white/[0.02] border border-white/5 flex items-start gap-4">
-          <ShieldAlert size={18} className="text-gray-600 shrink-0 mt-1" />
-          <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest leading-loose">Verification is permanent. One token per user identity. <br />Unauthorized attempts are logged by the <span className="text-purple-500">KULT Security Protocol</span>.</p>
+
+        <div className="mt-8 pt-6 border-t border-[#222] text-center flex flex-col items-center gap-3">
+           <ShieldAlert size={16} className="text-[#666]" />
+           <p className="text-xs text-[#666] leading-relaxed">Clearance upgrades are strictly logged. Distribution of unauthorized keys will result in immediate network expulsion.</p>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

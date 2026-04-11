@@ -1,113 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Bell, Send, ChevronRight, Mail, Shield, LogOut, ShieldCheck, ExternalLink, Crown } from 'lucide-react'; // ✅ Crown added
+import { X, Bell, Send, ChevronRight, User as UserIcon, Shield, LogOut, ShieldCheck, ExternalLink, Crown, HelpCircle, Globe, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-// DIRECT NOCODB CONFIG
-// Using the Table ID and Subdomain found in your logs for maximum reliability
 const NOCO_URL = "https://app.nocodb.com/api/v2/tables/mvxwc3h19a4a0jw/records";
 const NOCO_TOKEN = "nc_pat_mbLxWvXasyq6MXSzFGfGUZvM5VWFSxdvPY-f-Ymk"; 
 
-const Sidebar = ({ isOpen, onClose, user, role, notifications = [] }) => {
+const Sidebar = ({ isOpen, onClose, user, role, notifications = [], readNotifications = [], setReadNotifications }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [localNotifications, setLocalNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPostForm, setShowPostForm] = useState(false);
   const [postData, setPostData] = useState({ category: 'DL_Events', title: '', message: '' });
-  const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
-  const [selectedNotification, setSelectedNotification] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
-  const [readNotifications, setReadNotifications] = useState(() => {
-    const saved = localStorage.getItem('read_notifications');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [viewAllCategory, setViewAllCategory] = useState(null);
-  
-  const toggleCategory = (categoryId) => {
-    const isExpanding = !expandedCategories[categoryId];
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: isExpanding
-    }));
-
-    if (isExpanding) {
-      const categoryNotifs = getNotificationsByCategory(categoryId);
-      const newReadIds = categoryNotifs.map(n => n.id || n.Id).filter(id => !readNotifications.includes(id));
-      if (newReadIds.length > 0) {
-        const updatedRead = [...readNotifications, ...newReadIds];
-        setReadNotifications(updatedRead);
-        localStorage.setItem('read_notifications', JSON.stringify(updatedRead));
-      }
-    }
-  };
-  
-  const getNotificationsByCategory = (categoryId) => {
-    const allNotifs = notifications.length > 0 ? notifications : localNotifications;
-    return allNotifs.filter(n => n.Category === categoryId);
-  };
+  const [expandedNotifs, setExpandedNotifs] = useState({});
+  const [viewAllCategories, setViewAllCategories] = useState({});
 
   const isPrivileged = role === 'ORGANIZER' || role === 'SUPERVISOR';
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ show: true, msg, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
-  };
-
   useEffect(() => {
-    if (isOpen && notifications.length === 0) {
-      fetchNotifications();
-    }
+    if (isOpen && notifications.length === 0) fetchNotifications();
   }, [isOpen, notifications]);
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get(NOCO_URL, {
-        headers: { 'xc-token': NOCO_TOKEN }
-      });
-      
-      if (res.data && res.data.list) {
-        setLocalNotifications(res.data.list);
-      } else {
-        setLocalNotifications([]);
-      }
-    } catch (err) {
-      console.error("Fetch failed:", err);
-      showToast('Offline: Notification feed unavailable', 'error');
+      const res = await axios.get(NOCO_URL, { headers: { 'xc-token': NOCO_TOKEN } });
+      if (res.data && res.data.list) setLocalNotifications(res.data.list);
+    } catch (err) { console.error("Fetch failed:", err); }
+  };
+
+  const getNotificationsByCategory = (categoryId) => {
+    const validNotifs = Array.isArray(notifications) ? notifications : [];
+    const validLocal = Array.isArray(localNotifications) ? localNotifications : [];
+    const allNotifs = validNotifs.length > 0 ? validNotifs : validLocal;
+    return allNotifs.filter(n => n && n.Category === categoryId);
+  };
+
+  const toggleCategory = (categoryId) => {
+    setExpandedCategories(prev => ({ ...prev, [categoryId]: !prev[categoryId] }));
+  };
+
+  const toggleNotif = (notif) => {
+    const id = notif.id || notif.Id;
+    setExpandedNotifs(prev => ({ ...prev, [id]: !prev[id] }));
+    
+    // Mark as read natively
+    if (setReadNotifications && !readNotifications.includes(id)) {
+      const updatedRead = [...readNotifications, id];
+      setReadNotifications(updatedRead);
+      localStorage.setItem('read_notifications', JSON.stringify(updatedRead));
     }
   };
 
   const handlePostNotification = async (e) => {
     e.preventDefault();
-    if (!postData.title || !postData.message) {
-      showToast('Title and Message are required', 'error');
-      return;
-    }
+    if (!postData.title || !postData.message) return;
     setLoading(true);
-
     try {
-      await axios.post(NOCO_URL, {
-        Title: postData.title,
-        Message: postData.message,
-        Category: postData.category,
-      }, {
-        headers: { 
-          'xc-token': NOCO_TOKEN,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      showToast('Broadcast sent successfully!', 'success');
+      await axios.post(NOCO_URL, { Title: postData.title, Message: postData.message, Category: postData.category }, { headers: { 'xc-token': NOCO_TOKEN, 'Content-Type': 'application/json' } });
       setPostData({ category: 'DL_Events', title: '', message: '' });
       setShowPostForm(false);
       fetchNotifications();
-    } catch (err) {
-      console.error("Post Error:", err.response?.data);
-      const errorMsg = err.response?.data?.message || 'Check table columns';
-      showToast(`Post failed: ${errorMsg}`, 'error');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error("Post Error:", err); } 
+    finally { setLoading(false); }
   };
 
   const categories = [
@@ -117,327 +73,191 @@ const Sidebar = ({ isOpen, onClose, user, role, notifications = [] }) => {
     { id: 'Misc', label: 'Miscellaneous', icon: '📌' },
   ];
 
-  const getCategoryLabel = (id) => categories.find(c => c.id === id)?.label || id;
-  const getCategoryIcon = (id) => categories.find(c => c.id === id)?.icon || '📢';
-
   return (
-    // ✅ REST OF YOUR CODE EXACTLY SAME (unchanged)
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
-            onClick={onClose}
-          />
-          
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-screen w-full sm:w-[400px] bg-[#0B0B0F] border-l border-white/10 z-[101] flex flex-col shadow-2xl"
-          >
+        <motion.div
+          key="sidebar-backdrop"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-[#000000]/40 backdrop-blur-sm z-[1001]"
+          onClick={onClose}
+        />
+      )}
+      {isOpen && (
+        <motion.div
+          key="sidebar-panel"
+          initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
+          className="fixed right-0 top-0 h-screen w-full sm:w-[380px] bg-[#0a0a0a] border-l border-[#222] z-[1002] flex flex-col shadow-2xl"
+        >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10 mt-20">
-              <h2 className="text-lg font-semibold text-white">Menu</h2>
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400">
-                <X size={20} />
+            <div className="flex items-center justify-center px-6 py-4 border-b border-[#222] relative">
+              <h2 className="text-[10px] font-bold text-[#666] uppercase tracking-widest">Menu Interface</h2>
+              <button onClick={onClose} className="absolute right-5 p-1.5 bg-transparent hover:bg-[#111] border border-transparent hover:border-[#333] rounded-lg transition-colors text-[#A1A1AA] hover:text-white outline-none">
+                <X size={16} />
               </button>
             </div>
 
-            {/* Toast Overlay */}
-            <AnimatePresence>
-              {toast.show && (
-                <motion.div 
-                  initial={{ y: -20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -20, opacity: 0 }}
-                  className={`mx-4 mt-3 p-3 rounded-lg text-xs font-bold text-center border ${
-                  toast.type === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
-                }`}>
-                  {toast.msg}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Profile Brief */}
+            {user && (
+              <div className="p-6 border-b border-[#222] flex flex-col items-center justify-center gap-3">
+                <div className="w-14 h-14 rounded-full border-2 border-[#333] bg-[#111] overflow-hidden flex items-center justify-center shadow-lg">
+                  {user.photoURL ? <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" /> : <UserIcon size={20} className="text-[#A1A1AA]" />}
+                </div>
+                <div className="text-center">
+                  <h3 className="font-bold text-white text-sm tracking-tight">{user.name || user.email?.split('@')[0]}</h3>
+                  <div className="mt-1.5 inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#0070F3]/10 border border-[#0070F3]/20">
+                     <p className="text-[10px] text-[#0070F3] font-bold uppercase tracking-widest">{role?.toUpperCase() || 'OPERATIVE'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {/* Tabs */}
-            <div className="flex border-b border-white/10">
-              {['profile', 'notifications'].map((tab) => {
-                const totalUnread = notifications.length > 0 
-                  ? notifications.filter(n => !readNotifications.includes(n.id || n.Id)).length 
-                  : localNotifications.filter(n => !readNotifications.includes(n.id || n.Id)).length;
-
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-[2px] transition-all relative ${
-                      activeTab === tab ? 'text-purple-400 border-b-2 border-purple-400 bg-purple-400/5' : 'text-gray-500'
-                    }`}
-                  >
-                    {tab}
-                    {tab === 'notifications' && totalUnread > 0 && (
-                      <span className="absolute top-3 right-4 w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                    )}
-                  </button>
-                );
-              })}
+            {/* Content Tabs */}
+            <div className="flex px-6 pt-4 border-b border-[#222] gap-6">
+              <button onClick={() => setActiveTab('profile')} className={`pb-3 text-sm font-medium transition-colors border-b-2 inline-flex items-center gap-2 outline-none ${activeTab === 'profile' ? 'border-white text-white' : 'border-transparent text-[#A1A1AA] hover:text-[#EDEDED]'}`}>
+                <UserIcon size={16} /> Directory
+              </button>
+              <button onClick={() => setActiveTab('notifications')} className={`pb-3 text-sm font-medium transition-colors border-b-2 inline-flex items-center gap-2 outline-none ${activeTab === 'notifications' ? 'border-white text-white' : 'border-transparent text-[#A1A1AA] hover:text-[#EDEDED]'}`}>
+                <Bell size={16} /> Broadcasts
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {activeTab === 'profile' && (
-                <div className="p-6">
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                      <span className="text-2xl font-black text-white">
-                        {(user?.name || user?.email || 'U')[0].toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white leading-tight">{user?.name || 'User'}</h3>
-                      <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest">{role || 'MEMBER'}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                      <Mail size={12} className="text-purple-500 mb-2" />
-                      <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Email</p>
-                      <p className="text-sm text-white truncate">{user?.email || 'N/A'}</p>
-                    </div>
-
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                      <ShieldCheck size={12} className="text-purple-500 mb-2" />
-                      <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Verification</p>
-                      <p className="text-sm text-white">{role === 'SUPERVISOR' ? 'Primary Admin' : role === 'ORGANIZER' ? 'Mission Architect' : 'Authorized Personnel'}</p>
-                    </div>
-                  </div>
-
-                  {role === 'SUPERVISOR' && (
-                    <Link to="/supervisor" onClick={onClose} className="w-full mt-4 flex items-center justify-between p-4 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-2xl transition-all group">
-                      <div className="flex items-center gap-3">
-                        <Shield size={16} className="text-purple-400" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white">Supervisor Panel</span>
-                      </div>
-                      <ChevronRight size={14} className="text-purple-400 group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                  )}
+            {/* Tab Panels */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+              {activeTab === 'profile' ? (
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-[#666] tracking-wider uppercase mb-3 px-2">Navigation</div>
+                  <Link to="/" onClick={onClose} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-[#111] text-[#A1A1AA] hover:text-white border border-transparent hover:border-[#222] transition-colors group outline-none">
+                    <span className="flex items-center gap-3 text-sm font-medium"><Globe size={18} /> Available Sectors</span>
+                  </Link>
 
                   {(role === 'ORGANIZER' || role === 'SUPERVISOR') && (
-                    <Link to="/organizer" onClick={onClose} className="w-full mt-2 flex items-center justify-between p-4 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-2xl transition-all group">
-                      <div className="flex items-center gap-3">
-                        <Crown size={16} className="text-violet-400" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white">Organizer Hub</span>
-                      </div>
-                      <ChevronRight size={14} className="text-violet-400 group-hover:translate-x-1 transition-transform" />
+                    <>
+                      <Link to="/organizer" onClick={onClose} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-violet-900/10 text-[#A1A1AA] hover:text-violet-400 border border-transparent hover:border-violet-900/30 transition-colors group outline-none mt-2">
+                        <span className="flex items-center gap-3 text-sm font-medium"><Crown size={18} /> Architect Hub</span>
+                      </Link>
+                      <Link to="/create-event" onClick={onClose} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-[#111] text-[#A1A1AA] hover:text-white border border-transparent hover:border-[#222] transition-colors group outline-none mt-2">
+                        <span className="flex items-center gap-3 text-sm font-medium"><Zap size={18} /> Deploy Mission</span>
+                      </Link>
+                    </>
+                  )}
+
+                  {role === 'SUPERVISOR' && (
+                    <Link to="/supervisor" onClick={onClose} className="w-full flex items-center justify-between p-3 rounded-xl bg-[#0070F3]/5 text-[#0070F3] border border-[#0070F3]/20 hover:border-[#0070F3]/40 transition-colors group outline-none mt-2">
+                      <span className="flex items-center gap-3 text-sm font-medium"><ShieldCheck size={18} /> Master Oversight</span>
+                      <ExternalLink size={14} className="opacity-50" />
                     </Link>
                   )}
 
-                  <button 
-                    onClick={() => { localStorage.clear(); window.location.reload(); }}
-                    className="w-full mt-10 py-4 bg-red-500/5 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
-                  >
-                    Terminate Session
-                  </button>
+                  <div className="mt-8 pt-6 border-t border-[#222] space-y-2">
+                    <div className="text-xs font-semibold text-[#666] tracking-wider uppercase mb-3 px-2">Resources</div>
+                    {user && (
+                      <button onClick={() => { localStorage.removeItem('kult_token'); localStorage.removeItem('kult_user'); window.location.reload(); }} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-red-900/10 text-red-500/80 hover:text-red-500 border border-transparent hover:border-red-900/30 transition-colors mt-2 text-sm font-medium outline-none">
+                        <span className="flex items-center gap-3"><LogOut size={18} /> Disconnect</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-
-              {activeTab === 'notifications' && (
-                <div className="p-4">
-                  {isPrivileged && !showPostForm && (
-                    <button
-                      onClick={() => setShowPostForm(true)}
-                      className="w-full py-4 mb-6 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 hover:bg-purple-500 shadow-xl shadow-purple-600/20 transition-all"
-                    >
-                      <Send size={14} /> New Broadcast
+              ) : (
+                <div className="space-y-4">
+                  {isPrivileged && (
+                    <button onClick={() => setShowPostForm(!showPostForm)} className="w-full p-3 mb-4 rounded-xl bg-white text-black font-semibold text-sm hover:bg-[#EAEAEA] border border-transparent transition-all flex items-center justify-center gap-2 active:scale-95 outline-none">
+                      <Send size={16} /> Broadcast Message
                     </button>
                   )}
 
-                  {showPostForm && (
-                    <motion.form
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="bg-white/5 border border-white/10 p-5 rounded-3xl mb-6 space-y-4"
-                    >
-                      <select
-                        value={postData.category}
-                        onChange={e => setPostData({...postData, category: e.target.value})}
-                        className="w-full p-3 bg-black border border-white/10 rounded-xl text-xs text-white"
-                      >
-                        {categories.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
-                        ))}
-                      </select>
+                  <AnimatePresence>
+                    {showPostForm && (
+                      <motion.div key="post-form" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-6">
+                        <form onSubmit={handlePostNotification} className="bg-[#111] border border-[#222] rounded-xl p-4 space-y-4">
+                          <select className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-[#333] text-sm text-white focus:border-[#0070F3] outline-none transition-colors" value={postData.category} onChange={(e) => setPostData({...postData, category: e.target.value})}>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                          </select>
+                          <input type="text" placeholder="Title" className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-[#333] text-sm text-white focus:border-[#0070F3] outline-none transition-colors" value={postData.title} onChange={(e) => setPostData({...postData, title: e.target.value})} required />
+                          <textarea placeholder="Message" className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-[#333] text-sm text-white focus:border-[#0070F3] outline-none transition-colors resize-none h-24" value={postData.message} onChange={(e) => setPostData({...postData, message: e.target.value})} required />
+                          <button type="submit" disabled={loading} className="w-full py-3 bg-[#0070F3] hover:bg-[#0051B3] text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 outline-none">
+                            {loading ? "Sending..." : "Deploy"}
+                          </button>
+                        </form>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                      <input
-                        type="text"
-                        placeholder="Subject Line"
-                        value={postData.title}
-                        onChange={e => setPostData({...postData, title: e.target.value})}
-                        className="w-full p-3 bg-black border border-white/10 rounded-xl text-xs text-white placeholder-gray-700 outline-none focus:border-purple-500"
-                      />
-
-                      <textarea
-                        placeholder="Message content..."
-                        value={postData.message}
-                        onChange={e => setPostData({...postData, message: e.target.value})}
-                        className="w-full p-3 bg-black border border-white/10 rounded-xl text-xs text-white h-32 resize-none outline-none focus:border-purple-500"
-                      />
-
-                      <div className="flex gap-3">
-                        <button type="button" onClick={() => setShowPostForm(false)} className="flex-1 py-2 text-[10px] font-bold text-gray-500 uppercase">Cancel</button>
-                        <button type="submit" onClick={handlePostNotification} disabled={loading} className="flex-1 py-2 bg-white text-black text-[10px] font-black uppercase rounded-xl">
-                          {loading ? 'Sending...' : 'Publish'}
-                        </button>
-                      </div>
-                    </motion.form>
-                  )}
-
-                  {/* Categorized Notifications */}
                   <div className="space-y-4">
                     {categories.map((category) => {
-                      const categoryNotifications = getNotificationsByCategory(category.id);
-                      const unreadInCategory = categoryNotifications.filter(n => !readNotifications.includes(n.id || n.Id)).length;
-                      const isExpanded = expandedCategories[category.id];
-                      const displayNotifications = isExpanded && viewAllCategory !== category.id 
-                        ? [...categoryNotifications].reverse().slice(0, 3) 
-                        : [...categoryNotifications].reverse();
+                      const catNotifs = getNotificationsByCategory(category.id);
+                      if (catNotifs.length === 0 && !isPrivileged) return null;
+                      
+                      const unread = catNotifs.filter(n => !readNotifications.includes(n.id || n.Id)).length;
+                      const isDropdownOpen = expandedCategories[category.id];
+                      const seeAll = viewAllCategories[category.id];
+                      
+                      const visibleNotifs = seeAll ? catNotifs : catNotifs.slice(0, 3);
                       
                       return (
-                        <div key={category.id} className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden">
-                          <button
-                            onClick={() => toggleCategory(category.id)}
-                            className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
-                          >
+                        <div key={category.id} className="border border-[#222] rounded-xl overflow-hidden bg-[#0a0a0a] transition-all">
+                          <button onClick={() => toggleCategory(category.id)} className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-[#111] transition-colors outline-none">
+                            <span className="flex items-center gap-3 text-sm font-medium text-[#EDEDED]">
+                              <span>{category.icon}</span> {category.label}
+                            </span>
                             <div className="flex items-center gap-3">
-                              <span className="text-xl">{category.icon}</span>
-                              <div className="relative">
-                                <span className="text-sm font-bold text-white">{category.label}</span>
-                                {unreadInCategory > 0 && (
-                                  <span className="absolute -top-1 -right-3 w-2 h-2 bg-purple-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                                )}
-                              </div>
-                              <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full font-bold">
-                                {categoryNotifications.length}
-                              </span>
+                              {unread > 0 && <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{unread}</span>}
+                              <ChevronRight size={16} className={`text-[#666] transition-transform duration-300 ${isDropdownOpen ? 'rotate-90' : ''}`} />
                             </div>
-                            <ChevronRight 
-                              size={16} 
-                              className={`text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
-                            />
                           </button>
                           
-                          {isExpanded && (
-                            <div className="border-t border-white/5">
-                              {categoryNotifications.length > 0 ? (
-                                <>
-                                  {displayNotifications.map((notif, i) => (
-                                    <button
-                                      key={notif.id || i}
-                                      onClick={() => setSelectedNotification(notif)}
-                                      className="w-full text-left p-4 pl-6 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 group relative"
-                                    >
-                                      {!readNotifications.includes(notif.id || notif.Id) && (
-                                        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-1 bg-purple-500 rounded-full" />
-                                      )}
-                                      <h4 className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors line-clamp-1">
-                                        {notif.Title}
-                                      </h4>
-                                      <p className="text-[10px] text-gray-500 mt-1 truncate">
-                                        {new Date(notif.CreatedAt || Date.now()).toLocaleDateString()}
-                                      </p>
-                                    </button>
-                                  ))}
-                                  
-                                  {categoryNotifications.length > 3 && viewAllCategory !== category.id && (
-                                    <button 
-                                      onClick={() => setViewAllCategory(category.id)}
-                                      className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-purple-400 hover:text-white hover:bg-purple-600/10 transition-all text-center"
-                                    >
-                                      View All ({categoryNotifications.length})
-                                    </button>
+                          <AnimatePresence>
+                            {isDropdownOpen && (
+                              <motion.div key={`cat-${category.id}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-[#222]">
+                                <div className="bg-[#0a0a0a] flex flex-col">
+                                  {visibleNotifs.length > 0 ? visibleNotifs.map((notif, i) => {
+                                    const id = notif.id || notif.Id;
+                                    const isRead = readNotifications.includes(id);
+                                    const isExpanded = expandedNotifs[id];
+                                    
+                                    return (
+                                      <button key={id || i} onClick={() => toggleNotif(notif)} className={`w-full text-left p-4 border-b border-[#222] last:border-b-0 transition-all outline-none ${!isRead ? 'bg-[#1a1a1a] border-l-2 border-l-red-500' : 'hover:bg-[#111]'}`}>
+                                        <div className="flex justify-between items-center">
+                                          <h4 className={`text-sm tracking-tight pr-4 ${!isRead ? 'font-bold text-white' : 'font-medium text-[#A1A1AA]'}`}>{notif.Title}</h4>
+                                          {!isRead && <span className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0"></span>}
+                                        </div>
+                                        <AnimatePresence>
+                                          {isExpanded && (
+                                            <motion.div key={`msg-${id}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                              <p className="text-xs text-[#888] leading-relaxed mt-3 relative z-10 whitespace-pre-wrap">{notif.Message}</p>
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+                                      </button>
+                                    );
+                                  }) : (
+                                    <div className="p-4 text-xs font-medium text-[#666] text-center">No broadcasts inside module.</div>
                                   )}
                                   
-                                  {viewAllCategory === category.id && (
-                                    <button 
-                                      onClick={() => setViewAllCategory(null)}
-                                      className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all text-center"
-                                    >
-                                      Show Less
-                                    </button>
+                                  {catNotifs.length > 3 && (
+                                    <div className="p-2 bg-[#111] border-t border-[#222]">
+                                      <button onClick={(e) => { e.stopPropagation(); setViewAllCategories(prev => ({ ...prev, [category.id]: !seeAll })) }} className="w-full py-2 text-xs font-semibold text-[#0070F3] hover:text-[#3291FF] outline-none transition-colors">
+                                        {seeAll ? 'Collapse List' : `View All (${catNotifs.length})`}
+                                      </button>
+                                    </div>
                                   )}
-                                </>
-                              ) : (
-                                <p className="p-4 pl-6 text-xs text-gray-600">No notifications</p>
-                              )}
-                            </div>
-                          )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
-                    
-                    {notifications.length === 0 && localNotifications.length === 0 && (
-                      <div className="text-center py-24 text-gray-700">
-                        <Bell size={40} className="mx-auto mb-4 opacity-10" />
-                        <p className="text-xs font-bold uppercase tracking-widest">Clear for now</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
             </div>
+            {/* Bottom gradient fade for aesthetics */}
+            <div className="h-6 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none absolute bottom-0 left-0 right-0 w-full" />
           </motion.div>
-
-          {/* Modal Overlay */}
-          <AnimatePresence>
-            {selectedNotification && (
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/90 backdrop-blur-lg z-[200] flex items-center justify-center p-6"
-                onClick={() => setSelectedNotification(null)}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                  className="bg-[#0B0B0F] border border-white/10 w-full max-w-lg p-8 rounded-[2rem] relative shadow-2xl"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <button onClick={() => setSelectedNotification(null)} className="absolute top-6 right-6 p-2 text-gray-600 hover:text-white transition-colors">
-                    <X size={20} />
-                  </button>
-                  
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="text-3xl">{getCategoryIcon(selectedNotification.Category)}</span>
-                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-400/10 px-3 py-1 rounded-full">
-                      {getCategoryLabel(selectedNotification.Category)}
-                    </span>
-                  </div>
-                  
-                  <h3 className="text-2xl font-black text-white mb-6 leading-tight tracking-tight">{selectedNotification.Title}</h3>
-                  
-                  <div className="bg-white/5 border border-white/5 p-6 rounded-2xl mb-8">
-                    <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap max-h-[35vh] overflow-y-auto custom-scrollbar">
-                      {selectedNotification.Message}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[9px] font-black text-gray-500 uppercase tracking-[2px]">
-                    <div className="flex items-center gap-2">
-                       <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-                       {selectedNotification.AuthorName || "SYSTEM BROADCAST"}
-                    </div>
-                    <span>{new Date(selectedNotification.CreatedAt || Date.now()).toLocaleDateString()}</span>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
       )}
     </AnimatePresence>
   );
 };
-
 export default Sidebar;
