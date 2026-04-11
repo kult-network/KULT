@@ -27,46 +27,29 @@ process.on('SIGINT', () => {
 });
 });
 
-// ✅ Create transporter using Secure Port 465 to bypass outbound blocks
-const transporter = nodemailer.createTransport({
-    host: "smtp.hostinger.com",
-    port: 465, // Enforce SSL to bypass port 587/25 blocking
-    secure: true, 
-    family: 4, 
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
-    },
-    connectionTimeout: 20000
-});
+// ✅ Transporter removed: Enforcing Brevo HTTP API Pipeline
 
-// ✅ Verify connection
-transporter.verify((error, success) => {
-    if (error) {
-        console.error("❌ SMTP Connection Failed:", error.message);
-    }
-});
-
-// ✅ Send Email Function configured for Hostinger SMTP
+// ✅ Send Email Function via pure Brevo REST API pipeline
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            throw new Error("EMAIL_USER or EMAIL_PASS missing");
-        }
-
-        const info = await transporter.sendMail({
-            from: `"KULT Support" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            html: htmlContent
+        if (!process.env.BREVO_API_KEY) throw new Error("BREVO_API_KEY missing from environment variables");
+        const apiKey = process.env.BREVO_API_KEY;
+        
+        const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { name: "KULT Support", email: process.env.EMAIL_USER || "support@kultnetwork.in" },
+            to: [{ email: to }],
+            subject: subject,
+            htmlContent: htmlContent
+        }, {
+            headers: {
+                'accept': 'application/json',
+                'api-key': apiKey,
+                'content-type': 'application/json'
+            }
         });
-
         return true;
     } catch (err) {
-        console.error("❌ SMTP FULL ERROR:", err.message || err);
+        console.error("❌ BREVO HTTP API ERROR:", err.response?.data || err.message);
         return false;
     }
 };
