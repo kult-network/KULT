@@ -25,29 +25,48 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Transporter removed: using Brevo HTTP API to bypass Render port blocks
+});
 
-// ✅ Send Email Function via Brevo REST API
+// ✅ Create transporter using Secure Port 465 to bypass outbound blocks
+const transporter = nodemailer.createTransport({
+    host: "smtp.hostinger.com",
+    port: 465, // Enforce SSL to bypass port 587/25 blocking
+    secure: true, 
+    family: 4, 
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
+    },
+    connectionTimeout: 20000
+});
+
+// ✅ Verify connection
+transporter.verify((error, success) => {
+    if (error) {
+        console.error("❌ SMTP Connection Failed:", error.message);
+    }
+});
+
+// ✅ Send Email Function configured for Hostinger SMTP
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        if (!process.env.BREVO_API_KEY) throw new Error("BREVO_API_KEY missing from environment variables");
-        
-        const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
-            sender: { name: "KULT Support", email: process.env.EMAIL_USER || "support@kultnetwork.in" },
-            to: [{ email: to }],
-            subject: subject,
-            htmlContent: htmlContent
-        }, {
-            headers: {
-                'accept': 'application/json',
-                'api-key': process.env.BREVO_API_KEY,
-                'content-type': 'application/json'
-            }
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+            throw new Error("EMAIL_USER or EMAIL_PASS missing");
+        }
+
+        const info = await transporter.sendMail({
+            from: `"KULT Support" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            html: htmlContent
         });
+
         return true;
     } catch (err) {
-        console.error("❌ BREVO API ERROR:");
-        console.error(err.response?.data || err.message);
+        console.error("❌ SMTP FULL ERROR:", err.message || err);
         return false;
     }
 };
