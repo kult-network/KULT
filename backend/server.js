@@ -28,8 +28,8 @@ process.on('SIGINT', () => {
 // ✅ Create robust Nodemailer transporter with Brevo SMTP + Hostinger Falback
 const transporter = nodemailer.createTransport({
     host: process.env.BREVO_API_KEY ? "smtp-relay.brevo.com" : "smtp.hostinger.com",
-    port: 465, // SSL bypasses PaaS blocks
-    secure: true,
+    port: process.env.BREVO_API_KEY ? 2525 : 587, // Render strictly blocks 25, 465, 587 on Free Tier. Brevo supports 2525.
+    secure: false, // TLS upgrades automatically via STARTTLS
     auth: {
         user: process.env.EMAIL_USER || "support@kultnetwork.in",
         pass: process.env.BREVO_API_KEY || process.env.EMAIL_PASS
