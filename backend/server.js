@@ -25,8 +25,6 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-});
-
 // ✅ Create robust Nodemailer transporter with Brevo SMTP + Hostinger Falback
 const transporter = nodemailer.createTransport({
     host: process.env.BREVO_API_KEY ? "smtp-relay.brevo.com" : "smtp.hostinger.com",
