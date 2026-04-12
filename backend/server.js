@@ -39,7 +39,7 @@ const sendEmail = async (to, subject, htmlContent) => {
         }
 
         const response = await axios.post('https://api.resend.com/emails', {
-            from: `KULT <${process.env.EMAIL_USER || "onboarding@resend.dev"}>`,
+            from: "KULT <onboarding@resend.dev>",
             to: [to],
             subject: subject,
             html: htmlContent
