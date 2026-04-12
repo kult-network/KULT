@@ -31,7 +31,7 @@ const transporter = nodemailer.createTransport({
     port: process.env.BREVO_API_KEY ? 2525 : 587, // Render strictly blocks 25, 465, 587 on Free Tier. Brevo supports 2525.
     secure: false, // TLS upgrades automatically via STARTTLS
     auth: {
-        user: process.env.EMAIL_USER || "support@kultnetwork.in",
+        user: process.env.BREVO_USER || process.env.EMAIL_USER,
         pass: process.env.BREVO_API_KEY || process.env.EMAIL_PASS
     },
     tls: { rejectUnauthorized: false },
