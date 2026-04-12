@@ -25,14 +25,15 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Create robust Nodemailer transporter with Brevo SMTP + Hostinger Falback
+// ✅ Create purely Hostinger Nodemailer transporter 
 const transporter = nodemailer.createTransport({
-    host: process.env.BREVO_API_KEY ? "smtp-relay.brevo.com" : "smtp.hostinger.com",
-    port: process.env.BREVO_API_KEY ? 2525 : 587, // Render strictly blocks 25, 465, 587 on Free Tier. Brevo supports 2525.
-    secure: false, // TLS upgrades automatically via STARTTLS
+    host: "smtp.hostinger.com",
+    port: 465, // SSL 
+    secure: true,
+    family: 4, // Force IPv4 routing to prevent IPv6 unreachability errors
     auth: {
-        user: process.env.BREVO_USER || process.env.EMAIL_USER,
-        pass: process.env.BREVO_API_KEY || process.env.EMAIL_PASS
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     },
     tls: { rejectUnauthorized: false },
     connectionTimeout: 20000
