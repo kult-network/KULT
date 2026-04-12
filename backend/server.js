@@ -3,6 +3,11 @@ const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// 🔥 CRITICAL FIX: Force Node 18+ to resolve IPv4 addresses to stop ENETUNREACH on IPv6-less networks like Render
+dns.setDefaultResultOrder('ipv4first');
+
 if (!process.env.VERCEL) {
     require('dotenv').config();
 }
