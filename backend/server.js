@@ -27,29 +27,36 @@ process.on('SIGINT', () => {
 });
 });
 
-// ✅ Transporter removed: Enforcing Brevo HTTP API Pipeline
+// ✅ Create robust Nodemailer transporter with Brevo SMTP + Hostinger Falback
+const transporter = nodemailer.createTransport({
+    host: process.env.BREVO_API_KEY ? "smtp-relay.brevo.com" : "smtp.hostinger.com",
+    port: 465, // SSL bypasses PaaS blocks
+    secure: true,
+    auth: {
+        user: process.env.EMAIL_USER || "support@kultnetwork.in",
+        pass: process.env.BREVO_API_KEY || process.env.EMAIL_PASS
+    },
+    tls: { rejectUnauthorized: false },
+    connectionTimeout: 20000
+});
 
-// ✅ Send Email Function via pure Brevo REST API pipeline
+transporter.verify((error, success) => {
+    if (error) console.error("❌ SMTP Initialization Error:", error.message);
+    else console.log("✅ Nodemailer Linked & Secure.");
+});
+
+// ✅ Send Email Function via Nodemailer
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        if (!process.env.BREVO_API_KEY) throw new Error("BREVO_API_KEY missing from environment variables");
-        const apiKey = process.env.BREVO_API_KEY;
-        
-        const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
-            sender: { name: "KULT Support", email: process.env.EMAIL_USER || "support@kultnetwork.in" },
-            to: [{ email: to }],
-            subject: subject,
-            htmlContent: htmlContent
-        }, {
-            headers: {
-                'accept': 'application/json',
-                'api-key': apiKey,
-                'content-type': 'application/json'
-            }
+        const info = await transporter.sendMail({
+            from: `"KULT" <${process.env.EMAIL_USER || "support@kultnetwork.in"}>`,
+            to,
+            subject,
+            html: htmlContent
         });
         return true;
     } catch (err) {
-        console.error("❌ BREVO HTTP API ERROR:", err.response?.data || err.message);
+        console.error("❌ NODEMAILER ERROR:", err.message || err);
         return false;
     }
 };
