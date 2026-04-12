@@ -30,39 +30,30 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Create purely Hostinger Nodemailer transporter with Hardcoded IPv4
-const transporter = nodemailer.createTransport({
-    host: "172.65.255.143", // Direct IPv4 of smtp.hostinger.com to violently bypass IPv6 blackholes
-    port: 465, // SSL 
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: { 
-        servername: "smtp.hostinger.com", // Spoof SNI to validate Hostinger's SSL certificate over raw IP
-        rejectUnauthorized: false 
-    },
-    connectionTimeout: 20000
-});
-
-transporter.verify((error, success) => {
-    if (error) console.error("❌ SMTP Initialization Error:", error.message);
-    else console.log("✅ Nodemailer Linked & Secure.");
-});
-
-// ✅ Send Email Function via Nodemailer
+// ✅ Transporter removed: Enforcing Resend.com HTTP REST API Pipeline (Bypasses Render firewall)
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        const info = await transporter.sendMail({
-            from: `"KULT" <${process.env.EMAIL_USER || "support@kultnetwork.in"}>`,
-            to,
-            subject,
+        if (!process.env.RESEND_API_KEY) {
+            console.error("❌ RESEND_API_KEY missing from environment variables.");
+            return false;
+        }
+
+        const response = await axios.post('https://api.resend.com/emails', {
+            from: `KULT <${process.env.EMAIL_USER || "onboarding@resend.dev"}>`,
+            to: [to],
+            subject: subject,
             html: htmlContent
+        }, {
+            headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
         });
+
+        console.log("✅ Email pushed through Resend REST API.");
         return true;
     } catch (err) {
-        console.error("❌ NODEMAILER ERROR:", err.message || err);
+        console.error("❌ RESEND API ERROR:", err.response?.data || err.message);
         return false;
     }
 };
