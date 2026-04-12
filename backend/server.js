@@ -30,17 +30,19 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Create purely Hostinger Nodemailer transporter 
+// ✅ Create purely Hostinger Nodemailer transporter with Hardcoded IPv4
 const transporter = nodemailer.createTransport({
-    host: "smtp.hostinger.com",
+    host: "172.65.255.143", // Direct IPv4 of smtp.hostinger.com to violently bypass IPv6 blackholes
     port: 465, // SSL 
     secure: true,
-    family: 4, // Force IPv4 routing to prevent IPv6 unreachability errors
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    tls: { rejectUnauthorized: false },
+    tls: { 
+        servername: "smtp.hostinger.com", // Spoof SNI to validate Hostinger's SSL certificate over raw IP
+        rejectUnauthorized: false 
+    },
     connectionTimeout: 20000
 });
 
