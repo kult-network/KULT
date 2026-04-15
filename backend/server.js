@@ -43,9 +43,11 @@ const sendEmail = async (to, subject, htmlContent) => {
             template_id: process.env.EMAILJS_TEMPLATE_ID,
             user_id: process.env.EMAILJS_PUBLIC_KEY,
             template_params: {
-                to_email: to, // Matches your template's {{to_email}} field
+                to_email: to,
                 subject: subject,
-                otp_html: htmlContent // Matches your template's {{{otp_html}}} body tag
+                passcode: htmlContent.match(/\d{6}/)?.[0] || "", // Extracts the 6-digit OTP for your {{passcode}} tag
+                time: new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString(), // Fills your {{time}} tag
+                otp_html: htmlContent // Backup tag
             }
         }, {
             headers: { 'Content-Type': 'application/json' }
