@@ -30,30 +30,29 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Transporter: Enforcing SendGrid HTTP REST API Pipeline (Bypasses Render firewall & Resend blocks)
+// ✅ Transporter: Enforcing Plunk Zero-Config HTTP API (Bypasses ALL domain verification & firewall blocks)
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        if (!process.env.SENDGRID_API_KEY) {
-            console.error("❌ SENDGRID_API_KEY missing from environment variables.");
+        if (!process.env.PLUNK_API_KEY) {
+            console.error("❌ PLUNK_API_KEY missing from environment variables.");
             return false;
         }
 
-        const response = await axios.post('https://api.sendgrid.com/v3/mail/send', {
-            personalizations: [{ to: [{ email: to }] }],
-            from: { email: process.env.EMAIL_USER || "support@kultnetwork.in", name: "KULT" },
+        const response = await axios.post('https://api.useplunk.com/v1/send', {
+            to: to,
             subject: subject,
-            content: [{ type: 'text/html', value: htmlContent }]
+            body: htmlContent
         }, {
             headers: {
-                'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+                'Authorization': `Bearer ${process.env.PLUNK_API_KEY}`,
                 'Content-Type': 'application/json'
             }
         });
 
-        console.log("✅ Email pushed through SendGrid REST API.");
+        console.log("✅ Email pushed through Plunk REST API.");
         return true;
     } catch (err) {
-        console.error("❌ SENDGRID API ERROR:", err.response?.data || err.message);
+        console.error("❌ PLUNK API ERROR:", err.response?.data || err.message);
         return false;
     }
 };
