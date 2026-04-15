@@ -30,30 +30,30 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Transporter removed: Enforcing Resend.com HTTP REST API Pipeline (Bypasses Render firewall)
+// ✅ Transporter: Enforcing SendGrid HTTP REST API Pipeline (Bypasses Render firewall & Resend blocks)
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        if (!process.env.RESEND_API_KEY) {
-            console.error("❌ RESEND_API_KEY missing from environment variables.");
+        if (!process.env.SENDGRID_API_KEY) {
+            console.error("❌ SENDGRID_API_KEY missing from environment variables.");
             return false;
         }
 
-        const response = await axios.post('https://api.resend.com/emails', {
-            from: "KULT <onboarding@resend.dev>",
-            to: [to],
+        const response = await axios.post('https://api.sendgrid.com/v3/mail/send', {
+            personalizations: [{ to: [{ email: to }] }],
+            from: { email: process.env.EMAIL_USER || "support@kultnetwork.in", name: "KULT" },
             subject: subject,
-            html: htmlContent
+            content: [{ type: 'text/html', value: htmlContent }]
         }, {
             headers: {
-                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
                 'Content-Type': 'application/json'
             }
         });
 
-        console.log("✅ Email pushed through Resend REST API.");
+        console.log("✅ Email pushed through SendGrid REST API.");
         return true;
     } catch (err) {
-        console.error("❌ RESEND API ERROR:", err.response?.data || err.message);
+        console.error("❌ SENDGRID API ERROR:", err.response?.data || err.message);
         return false;
     }
 };
