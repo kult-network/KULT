@@ -132,6 +132,10 @@ const Sidebar = ({ isOpen, onClose, user, role, notifications = [], readNotifica
                     <span className="flex items-center gap-3 text-sm font-medium"><Globe size={18} /> Available Sectors</span>
                   </Link>
 
+                  <Link to="/blog" onClick={onClose} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-[#111] text-[#A1A1AA] hover:text-white border border-transparent hover:border-[#222] transition-colors group outline-none mt-2">
+                    <span className="flex items-center gap-3 text-sm font-medium"><Zap size={18} /> Intelligence Feed</span>
+                  </Link>
+
                   {(role === 'ORGANIZER' || role === 'SUPERVISOR') && (
                     <>
                       <Link to="/organizer" onClick={onClose} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-violet-900/10 text-[#A1A1AA] hover:text-violet-400 border border-transparent hover:border-violet-900/30 transition-colors group outline-none mt-2">

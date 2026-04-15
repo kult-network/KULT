@@ -4,6 +4,8 @@ const cors = require('cors');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const dns = require('dns');
+const blogRoutes = require('./routes/blog');
+const seoRoutes = require('./routes/seo');
 
 // 🔥 CRITICAL FIX: Force Node 18+ to resolve IPv4 addresses to stop ENETUNREACH on IPv6-less networks like Render
 dns.setDefaultResultOrder('ipv4first');
@@ -94,6 +96,7 @@ const TABLE_ID_BOOKINGS = "mq28zf6dbmbnyhp";
 const TABLE_ID_TOKENS = "mc0b38mv8ao1a1o";
 const TABLE_ID_POLLS = "mc7vexszhan3k4r";
 const TABLE_ID_NOTIFICATIONS = "mvxwc3h19a4a0jw";
+const TABLE_ID_BLOGS = process.env.TABLE_ID_BLOGS || "m_your_blog_table_id"; // ADD THIS TO .ENV
 
 // --- 3. HELPER FUNCTIONS & CACHING ---
 const cache = new Map();
@@ -638,6 +641,10 @@ app.get('/api/activity', async (req, res) => {
         res.json(data.list || data || []);
     } catch (err) { res.status(500).json([]); }
 });
+
+// --- 9. SEO & BLOG ROUTES ---
+app.use('/api/blogs', blogRoutes);
+app.use('/', seoRoutes); // For sitemap.xml
 
 app.get('/', (req, res) => res.send("🚀 KULT ENGINE MASTER IS ONLINE"));
 

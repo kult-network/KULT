@@ -67,6 +67,12 @@ const Header = ({ user, userData, role, onMenuClick, sidebarOpen, notifications 
         </span>
       </Link>
 
+      <div className="hidden md:flex items-center gap-6 ml-10 flex-1">
+        <Link to="/blog" className="text-sm font-bold text-zinc-400 hover:text-white transition-all uppercase tracking-widest flex items-center gap-2 group">
+          <Zap size={14} className="text-purple-500 group-hover:animate-pulse" /> Intelligence Feed
+        </Link>
+      </div>
+
       <div className="flex items-center gap-3">
         {onMenuClick && (
           <button 

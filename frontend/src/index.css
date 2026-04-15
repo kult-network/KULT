@@ -142,3 +142,13 @@ input:focus, textarea:focus, select:focus {
 .bg-texture, .mesh-gradient, .starfield { 
   display: none !important; 
 }
+
+/* 📖 Blog Prose Styles (Tailwind Typography Alternative) */
+.prose h1, .prose h2, .prose h3 { margin-top: 2em; margin-bottom: 0.8em; }
+.prose p { margin-bottom: 1.5em; font-size: 1.125rem; color: #D4D4D8; }
+.prose ul, .prose ol { margin-left: 1.5em; margin-bottom: 1.5em; list-style-type: disc; }
+.prose li { margin-bottom: 0.5em; }
+.prose strong { color: #FFFFFF; font-weight: 700; }
+.prose a { color: #A855F7; text-decoration: underline; text-under-offset: 4px; }
+.prose blockquote { border-left: 4px solid #A855F7; padding-left: 1.5em; font-style: italic; color: #A1A1AA; }
+.prose img { border-radius: 16px; margin: 2em 0; border: 1px solid rgba(255,255,255,0.1); }

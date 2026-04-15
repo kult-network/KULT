@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from './config/api';
@@ -15,6 +15,14 @@ import SupervisorPanel from './pages/SupervisorPanel';
 import Onboarding from './pages/Onboarding';
 import OrganizerDashboard from './pages/OrganizerDashboard';
 import OrganizerPanel from './pages/OrganizerPanel';
+import SEO from './components/seo/SEO';
+
+const BlogList = lazy(() => import('./pages/blog/BlogList'));
+const BlogDetail = lazy(() => import('./pages/blog/BlogDetail'));
+const StudentNetworking = lazy(() => import('./pages/seo/StudentNetworking'));
+const AICommunity = lazy(() => import('./pages/seo/AICommunity'));
+const CollegeApp = lazy(() => import('./pages/seo/CollegeApp'));
+const AdminBlog = lazy(() => import('./pages/blog/AdminBlog'));
 
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -249,6 +257,29 @@ function App() {
                   <CreateHub />
                 </RoleProtectedRoute>
               } />
+
+              {/* BLOG & SEO ROUTES */}
+              <Route path="/blog" element={
+                <Suspense fallback={<div className="h-screen bg-black" />}><BlogList /></Suspense>
+              } />
+              <Route path="/blog/:slug" element={
+                <Suspense fallback={<div className="h-screen bg-black" />}><BlogDetail /></Suspense>
+              } />
+              <Route path="/admin/blog" element={
+                <RoleProtectedRoute user={user} role={role} allowedRoles={['SUPERVISOR']}>
+                  <Suspense fallback={<div className="h-screen bg-black" />}><AdminBlog /></Suspense>
+                </RoleProtectedRoute>
+              } />
+              <Route path="/student-networking-platform-india" element={
+                <Suspense fallback={<div className="h-screen bg-black" />}><StudentNetworking /></Suspense>
+              } />
+              <Route path="/ai-student-community" element={
+                <Suspense fallback={<div className="h-screen bg-black" />}><AICommunity /></Suspense>
+              } />
+              <Route path="/college-networking-app" element={
+                <Suspense fallback={<div className="h-screen bg-black" />}><CollegeApp /></Suspense>
+              } />
+
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>
