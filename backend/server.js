@@ -30,29 +30,31 @@ process.on('SIGINT', () => {
     console.log('SIGINT received');
     process.exit(0);
 });
-// ✅ Transporter: Enforcing Plunk Zero-Config HTTP API (Bypasses ALL domain verification & firewall blocks)
+// ✅ Transporter: Enforcing EmailJS Bridge (Bypasses Render firewall using custom support@kultnetwork.in)
 const sendEmail = async (to, subject, htmlContent) => {
     try {
-        if (!process.env.PLUNK_API_KEY) {
-            console.error("❌ PLUNK_API_KEY missing from environment variables.");
+        if (!process.env.EMAILJS_SERVICE_ID || !process.env.EMAILJS_TEMPLATE_ID || !process.env.EMAILJS_PUBLIC_KEY) {
+            console.error("❌ EMAILJS environment variables missing.");
             return false;
         }
 
-        const response = await axios.post('https://api.useplunk.com/v1/send', {
-            to: to,
-            subject: subject,
-            body: htmlContent
-        }, {
-            headers: {
-                'Authorization': `Bearer ${process.env.PLUNK_API_KEY}`,
-                'Content-Type': 'application/json'
+        const response = await axios.post('https://api.emailjs.com/api/v1.0/email/send', {
+            service_id: process.env.EMAILJS_SERVICE_ID,
+            template_id: process.env.EMAILJS_TEMPLATE_ID,
+            user_id: process.env.EMAILJS_PUBLIC_KEY,
+            template_params: {
+                to_email: to,
+                subject: subject,
+                otp_html: htmlContent // Map this to your EmailJS template variable
             }
+        }, {
+            headers: { 'Content-Type': 'application/json' }
         });
 
-        console.log("✅ Email pushed through Plunk REST API.");
+        console.log("✅ Email successfully bridged via EmailJS.");
         return true;
     } catch (err) {
-        console.error("❌ PLUNK API ERROR:", err.response?.data || err.message);
+        console.error("❌ EMAILJS BRIDGE ERROR:", err.response?.data || err.message);
         return false;
     }
 };
