@@ -43,9 +43,9 @@ const sendEmail = async (to, subject, htmlContent) => {
             template_id: process.env.EMAILJS_TEMPLATE_ID,
             user_id: process.env.EMAILJS_PUBLIC_KEY,
             template_params: {
-                to_email: to,
+                to_email: to, // Matches your template's {{to_email}} field
                 subject: subject,
-                otp_html: htmlContent // Map this to your EmailJS template variable
+                otp_html: htmlContent // Matches your template's {{{otp_html}}} body tag
             }
         }, {
             headers: { 'Content-Type': 'application/json' }
