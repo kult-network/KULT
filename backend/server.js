@@ -44,11 +44,12 @@ const sendEmail = async (to, subject, htmlContent) => {
             user_id: process.env.EMAILJS_PUBLIC_KEY,
             accessToken: process.env.EMAILJS_PRIVATE_KEY, // Forces authorization in Strict Mode
             template_params: {
-                to_email: to,
+                to_email: to, // Redundant tag 1
+                email: to,    // Redundant tag 2
                 subject: subject,
-                passcode: htmlContent.match(/\d{6}/)?.[0] || "", // Extracts the 6-digit OTP for your {{passcode}} tag
-                time: new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString(), // Fills your {{time}} tag
-                otp_html: htmlContent // Backup tag
+                passcode: htmlContent.match(/\d{6}/)?.[0] || "",
+                time: new Date(Date.now() + 10 * 60 * 1000).toLocaleTimeString(),
+                otp_html: htmlContent
             }
         }, {
             headers: { 'Content-Type': 'application/json' }
